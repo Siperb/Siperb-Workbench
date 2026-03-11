@@ -1,0 +1,29 @@
+{
+    "environment": "testing",
+    "SESSION_ID": "jbprn9YTJDaKvCUD7dd2poSBWEkt3i7gfFfYnGq5YqpVHoHSuZNh8vp99FO4Fyizw6LLABut9p0Cde61td8lFWR,m7bfcWutQVc2PjCJ0O1wvMs5H5BiMHhkercHPysa",
+    "USER_ID": "6e7987098adaf7bb947620430bcf78e6",
+    "DEVICE_ID": "t32d0d9d82c8c9fd4e270ee273cedea3978ba1c6a46c540d2edbf209892e6d788",
+    "siperb-version-tree-production": "https://2eqcm3bestdxkwbjllxdmjq5pi0hracl.lambda-url.eu-west-1.on.aws/",
+    "siperb-version-tree-testing": "https://6lvyn2achef6byosgnzfge3hku0jmqrb.lambda-url.eu-west-1.on.aws/",
+    "phone-version-tree-production": "https://y3amulnpc5icrmmnmvtfn44zba0ckjuq.lambda-url.eu-west-1.on.aws/",
+    "phone-version-tree-testing": "https://vgf6bcf26w6wime5enpyflps640yhqmb.lambda-url.eu-west-1.on.aws/",
+    "UseLocalFiles": [
+        {
+            "lib": "/lib/Browser-Phone-Core/Browser-Phone-Core.min.js",
+            "absolutePath": "/Users/ruben/Dropbox/ruben_dev/Browser-Phone-Core/Browser-Phone-Core.min.js",
+            "relativePath": "./lib/Browser-Phone-Core/Browser-Phone-Core.min.js"
+        },
+        {
+            "lib": "/lib/Browser-Phone-SipProvider/Browser-Phone-SipProvider.min.js",
+            "relativePath": "./lib/Browser-Phone-SipProvider/Browser-Phone-SipProvider.min.js"
+        },
+        {
+            "lib": "/lib/Browser-Phone-SipProvider/WebSipCore.min.js",
+            "relativePath": "./lib/Browser-Phone-SipProvider/WebSipCore.min.js"
+        },
+        {
+            "lib": "/lib/Browser-Phone-Storage/Browser-Phone-Storage.min.js",
+            "relativePath": "./lib/Browser-Phone-Storage/Browser-Phone-Storage.min.js"
+        }
+    ]
+}

@@ -1,0 +1,68 @@
+{
+    "timestamp": "2026-03-11T13:22:07.168Z",
+    "total": 6,
+    "passed": 6,
+    "failed": 0,
+    "results": [
+        {
+            "name": "buddy-tests",
+            "status": "pass",
+            "total": 4,
+            "passed": 4,
+            "failed": 0,
+            "message": "4 of 4 tests passed",
+            "results": [
+                {
+                    "name": "buddy-add",
+                    "status": "pass",
+                    "message": "Buddy added"
+                },
+                {
+                    "name": "buddy-delete",
+                    "status": "pass",
+                    "message": "Buddy deleted"
+                },
+                {
+                    "name": "buddy-update",
+                    "status": "pass",
+                    "message": "Buddies updated successfully with display name: TestBuddy UPDATED"
+                },
+                {
+                    "name": "load-buddies",
+                    "status": "pass",
+                    "message": "Buddies loaded successfully with 1 buddies"
+                }
+            ]
+        },
+        {
+            "name": "message-tests",
+            "status": "pass",
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "message": "1 of 1 tests passed",
+            "results": [
+                {
+                    "name": "message-add",
+                    "status": "pass",
+                    "message": "Message added"
+                }
+            ]
+        },
+        {
+            "name": "settings-test",
+            "status": "pass",
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "message": "1 of 1 tests passed",
+            "results": [
+                {
+                    "name": "abc",
+                    "status": "pass",
+                    "message": "Settings Test"
+                }
+            ]
+        }
+    ]
+}

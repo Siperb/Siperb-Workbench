@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siperb Workbench Runner</title>
+    <script>
+        // TestConfig is pre-populated at build time by build.js
+        // All URLs come from test.config.json — nothing is hardcoded here
+        window.TestConfig = {
+        "SESSION_ID": "jbprn9YTJDaKvCUD7dd2poSBWEkt3i7gfFfYnGq5YqpVHoHSuZNh8vp99FO4Fyizw6LLABut9p0Cde61td8lFWR,m7bfcWutQVc2PjCJ0O1wvMs5H5BiMHhkercHPysa",
+        "USER_ID": "6e7987098adaf7bb947620430bcf78e6",
+        "DEVICE_ID": "t32d0d9d82c8c9fd4e270ee273cedea3978ba1c6a46c540d2edbf209892e6d788",
+        "environment": "testing",
+        "phoneVersionTreeUrl": "https://vgf6bcf26w6wime5enpyflps640yhqmb.lambda-url.eu-west-1.on.aws/",
+        "siperbVersionTreeUrl": "https://6lvyn2achef6byosgnzfge3hku0jmqrb.lambda-url.eu-west-1.on.aws/",
+        "UseLocalFiles": [
+                {
+                        "lib": "/lib/Browser-Phone-Core/Browser-Phone-Core.min.js",
+                        "absolutePath": "/Users/ruben/Dropbox/ruben_dev/Browser-Phone-Core/Browser-Phone-Core.min.js",
+                        "relativePath": "./lib/Browser-Phone-Core/Browser-Phone-Core.min.js"
+                },
+                {
+                        "lib": "/lib/Browser-Phone-SipProvider/Browser-Phone-SipProvider.min.js",
+                        "relativePath": "./lib/Browser-Phone-SipProvider/Browser-Phone-SipProvider.min.js"
+                },
+                {
+                        "lib": "/lib/Browser-Phone-SipProvider/WebSipCore.min.js",
+                        "relativePath": "./lib/Browser-Phone-SipProvider/WebSipCore.min.js"
+                },
+                {
+                        "lib": "/lib/Browser-Phone-Storage/Browser-Phone-Storage.min.js",
+                        "relativePath": "./lib/Browser-Phone-Storage/Browser-Phone-Storage.min.js"
+                }
+        ],
+        "Provisioning": {
+                "RegistrationMode": "Proxy",
+                "profileName": "Ruben Siperb Gmail 2 400 | 700",
+                "ProfileUserName": "Ruben Siperb Gmail 2 400 | 700",
+                "WebSocketPort": "443",
+                "SipWebsocketPort": "443",
+                "ServerPath": "/ws",
+                "SipServerPath": "/ws",
+                "wssServer": "ws-eu-west-1.siperb.com",
+                "SipWssServer": "ws-eu-west-1.siperb.com",
+                "ContactUserName": "ca2eb2dfff9f63e7cfe9f2d52",
+                "SipContact": "ca2eb2dfff9f63e7cfe9f2d52",
+                "SipDomain": "da0785c493063449c01843085.siperb.com",
+                "SipUsername": "u7507b4841a3f9e7a40a5cb4916a91abb",
+                "SipPassword": "p8310a03aa09beaa1ee2f4ec3",
+                "SipJwt": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InYxIn0.eyJzdWIiOiJ1NzUwN2I0ODQxYTNmOWU3YTQwYTVjYjQ5MTZhOTFhYmJAZGEwNzg1YzQ5MzA2MzQ0OWMwMTg0MzA4NS5zaXBlcmIuY29tIiwic2lwX3VzZXIiOiJ1NzUwN2I0ODQxYTNmOWU3YTQwYTVjYjQ5MTZhOTFhYmIiLCJkb21haW4iOiJkYTA3ODVjNDkzMDYzNDQ5YzAxODQzMDg1LnNpcGVyYi5jb20iLCJ1c2VyX2lkIjoiNmU3OTg3MDk4YWRhZjdiYjk0NzYyMDQzMGJjZjc4ZTYiLCJzY29wZSI6InNpcDpyZWdpc3RlciBzaXA6aW52aXRlIiwiaWF0IjoxNzczMjM1MzI0LCJleHAiOjE3NzMzMjE3MjQsImF1ZCI6IndzLWV1LXdlc3QtMS5zaXBlcmIuY29tIn0.AFO3eepRwBWj1kJG1_uTJBIgtm-C3azvJQbaPQUPuGSzT1FZX564-Blfe6Ou87BLp7KDI-5O9cGlIhi0XMq4dhuH4nzD0Ses5RkzIZyjyD5sVCXyS-M7vBLC0njxR-AHbef6p5tiRdoCaecJ_ysSbhdKECSKiV-Gtvh280StZ1ead5WMkt9AG3_pWb-TOsdY9SjTo9d-ZsULdDAgUs6U6qFnFQcKruWbvm-OFiGRhFK5xw7WLBAtaEmQK5Gd4zGmjydT5_KOL5Rt9Fc5RWsrgk3ZiGhXpjBnAWz-A12IJcp8A2HM2bR0ypTLSXhRJSj0KWQtxBMj0eY-dsLMgErDyQ",
+                "EnableCallRecording": false,
+                "RecordAllCalls": false,
+                "RecordOnlyAudioInVideoCall": true,
+                "RecordingLayout": "them-pnp",
+                "RecordingPosterJpegQuality": 0.6,
+                "RecordingVideoFps": 12,
+                "RecordingVideoSize": "HD",
+                "EnableVideoCalling": false,
+                "EnableConferenceCall": false,
+                "TransportConnectionTimeout": 15,
+                "UiCustomConfigMenu": true,
+                "welcomeScreen": null
+        }
+};
+    </script>
+    <script type="module" src="./builder/SiperbWorkBenchBuilder.js"></script>
+    <script src="./main.js"></script>
+</head>
+<body>
+    <iframe id="phoneFrame" src="./phone.html" style="display:none; width:100%; height:100%; border:none;"></iframe>
+    <script>
+        window.addEventListener('load', async function() {
+            const iframe = document.getElementById('phoneFrame');
+            const cfg = window.TestConfig;
+            try {
+                console.log('Runner: Loading Browser Phone into iframe...');
+                await SiperbWorkBenchBuilder.LoadBrowserPhone(iframe, {
+                    treeUrl: cfg.phoneVersionTreeUrl,
+                    UseLocalFiles: cfg.UseLocalFiles
+                });
+                console.log('Runner: Provisioning phone...');
+                await SiperbWorkBenchBuilder.ProvisionPhone({
+                    Provisioning: cfg.Provisioning,
+                    PhoneFrame: iframe,
+                    ProfileUserId: cfg.DEVICE_ID,
+                    SessionId: cfg.SESSION_ID,
+                    UserId: cfg.USER_ID,
+                });
+                console.log('Runner: Phone ready.');
+                window.__phoneReady = true;
+            } catch(e) {
+                console.error('Runner: Phone load failed:', e);
+                window.__phoneError = e.message || String(e);
+            }
+        });
+    </script>
+</body>
+</html>

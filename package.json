@@ -1,0 +1,11 @@
+{
+    "name": "siperb-workbench",
+    "type": "module",
+    "scripts": {
+        "build": "node build.js",
+        "test": "node run-tests.js"
+    },
+    "dependencies": {
+        "playwright": "^1.40.0"
+    }
+}
