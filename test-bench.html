@@ -6,6 +6,8 @@
     <title>Siperb Workbench — Test Bench</title>
     <script type="module" src="./builder/SiperbWorkBenchBuilder.js"></script>
     <script src="./main.js"></script>
+    <!-- Favicon -->
+    <link rel="icon" href="./favicon.png">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { display: flex; height: 100vh; font-family: 'Segoe UI', system-ui, monospace; font-size: 13px; background: #111; color: #ddd; overflow: hidden; }
@@ -16,9 +18,7 @@
         #toolbar { padding: 14px 14px 10px; background: #181818; border-bottom: 1px solid #252525; display: flex; flex-direction: column; gap: 10px; }
         #toolbar h1 { font-size: 11px; font-weight: 600; color: #555; letter-spacing: 1.5px; text-transform: uppercase; }
 
-        #phone-status { font-size: 11px; color: #666; }
-        #phone-status.ready { color: #4caf50; }
-        #phone-status.error { color: #e57373; }
+        #phone-status { font-size: 11px; color: #9e9e9e; }
 
         /* Pick row */
         #pick-row { display: flex; gap: 6px; }
@@ -31,7 +31,7 @@
         .pick-btn:hover { background: #252525; border-color: #3a3a3a; color: #ccc; }
         .pick-btn.active { border-color: #4a9eff; color: #4a9eff; background: #141e2e; }
         .pick-btn svg { flex-shrink: 0; }
-        #filePicker, #folderPicker { display: none; }
+        #filePicker { display: none; }
 
         /* URL row */
         #url-row { display: none; gap: 6px; }
@@ -173,11 +173,49 @@
 <!-- Left panel -->
 <div id="left">
     <div id="toolbar">
-        <h1>Siperb Test Bench</h1>
-        <div id="phone-status">⏳ Loading phone...</div>
+        <!-- Test bench header -->
+        <div style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 16px 0;
+        ">
+            <div style="
+                border-radius: 50%;
+                overflow: hidden;
+                width: 140px;
+                height: 140px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #111;
+                box-shadow: 0 0 0 2px #333;
+            ">
+                <img src="./favicon.png" alt="Siperb" width="120" height="120">
+            </div>
+            <h1 style="
+                margin: 4px 0 0;
+                font-size: 22px;
+                font-weight: 600;
+                letter-spacing: 0.03em;
+            ">
+                Siperb Test Bench
+            </h1>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <div id="phone-status" style="font-size:13px; color:#9e9e9e;">⏳ Loading phone...</div>
+                <button id="reload-btn" onclick="reloadPhone()" title="Reload phone" style="
+                    padding:3px 7px; border:1px solid #2e2e2e; background:#1e1e1e;
+                    color:#666; cursor:pointer; border-radius:4px; font-size:13px; line-height:1;
+                    transition: background .15s, color .15s;
+                " onmouseover="this.style.background='#252525';this.style.color='#aaa'"
+                   onmouseout="this.style.background='#1e1e1e';this.style.color='#666'">↺</button>
+            </div>
+        </div>
+      
 
         <div id="pick-row">
-            <input type="file" id="folderPicker" webkitdirectory multiple accept=".js">
             <input type="file" id="filePicker" multiple accept=".js">
 
             <button class="pick-btn" onclick="pickFolder()">
@@ -186,12 +224,7 @@
                 </svg>
                 Folder
             </button>
-            <button class="pick-btn" onclick="pickFiles()">
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1v3.5H13L9.5 1z"/>
-                </svg>
-                Files
-            </button>
+           
             <button class="pick-btn" id="url-btn" onclick="toggleUrlRow()">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
@@ -334,12 +367,44 @@
     function setPhoneStatus(msg, cls) {
         var el = document.getElementById('phone-status');
         el.textContent = msg;
-        el.className = cls || '';
+        el.style.color = cls === 'ready' ? '#4caf50' : cls === 'error' ? '#e57373' : '#9e9e9e';
+    }
+
+    function reloadPhone() {
+        phoneReady = false;
+        window.__phoneReady = false;
+        window.__phoneError = undefined;
+        document.getElementById('run-btn').disabled = true;
+        // Don't reload the iframe src — LoadBrowserPhone calls document.open() which
+        // replaces the iframe content itself. Re-navigating the iframe first causes a
+        // race with the module script in phone.html aborting mid-import.
+        bootstrapPhone();
     }
 
     // ── File / folder picking ────────────────────────────────────────────
 
-    function pickFolder() { document.getElementById('folderPicker').click(); }
+    async function pickFolder() {
+        try {
+            var dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+            var rawFiles = [];
+            await collectDirFiles(dirHandle, dirHandle.name, rawFiles);
+            if (rawFiles.length) await loadRawFiles(rawFiles);
+        } catch(e) {
+            if (e.name !== 'AbortError') appendLog('Folder picker error: ' + e.message, 'fail');
+        }
+    }
+
+    async function collectDirFiles(dirHandle, folderName, out) {
+        for await (var entry of dirHandle.values()) {
+            if (entry.kind === 'file' && entry.name.endsWith('.js')) {
+                var file = await entry.getFile();
+                out.push({ name: entry.name, folder: folderName, code: await file.text() });
+            } else if (entry.kind === 'directory') {
+                await collectDirFiles(entry, entry.name, out);
+            }
+        }
+    }
+
     function pickFiles()  { document.getElementById('filePicker').click(); }
 
     function toggleUrlRow() {
@@ -347,6 +412,9 @@
         var btn = document.getElementById('url-btn');
         var open = row.classList.toggle('open');
         btn.classList.toggle('active', open);
+
+        // Add default value to the github-url-input
+        document.getElementById('github-url-input').value = 'https://github.com/Siperb/Siperb-Testing-Files/tree/main/tests/';
         if (open) document.getElementById('github-url-input').focus();
     }
 
@@ -372,6 +440,7 @@
         });
 
         renderTestList();
+        clearLogs();
         document.getElementById('run-btn').disabled = !(testFiles.length > 0 && phoneReady);
     }
 
@@ -390,7 +459,15 @@
             return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name);
         });
         renderTestList();
+        clearLogs();
         document.getElementById('run-btn').disabled = !(testFiles.length > 0 && phoneReady);
+    }
+
+    function clearLogs() {
+        document.getElementById('log-area').innerHTML = '';
+        document.getElementById('stat-total-val').textContent = '—';
+        document.getElementById('stat-pass-val').textContent  = '—';
+        document.getElementById('stat-fail-val').textContent  = '—';
     }
 
     // ── GitHub URL fetching ──────────────────────────────────────────────
@@ -457,10 +534,7 @@
         if (e.key === 'Escape') toggleUrlRow();
     });
 
-    document.getElementById('folderPicker').addEventListener('change', function(e) {
-        loadFileList(e.target.files);
-        e.target.value = '';
-    });
+
     document.getElementById('filePicker').addEventListener('change', function(e) {
         loadFileList(e.target.files);
         e.target.value = '';

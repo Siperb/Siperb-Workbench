@@ -326,7 +326,7 @@ const SiperbWorkBenchBuilder = {
             // Check if the version tree is already in localStorage
             let isResolved = false;
             let versionTree = localStorage.getItem(cacheKey);
-            if (versionTree && window.SiperbAPI.DevMode !== true) {
+            if (versionTree && !(window.SiperbAPI && window.SiperbAPI.DevMode === true)) {
                 // Parse the JSON string to an object
                 versionTree = JSON.parse(versionTree);
                 // Resolve the Promise but don't return the function
@@ -564,10 +564,10 @@ const SiperbWorkBenchBuilder = {
             phone.Settings.WallpaperLight = "wallpaper.0.light.webp";                               // A file name from the above list. Defaults to "wallpaper.0.light.webp"
             phone.Settings.WallpaperDark = "wallpaper.0.dark.webp";                                 // A file name from the above list. Defaults to "wallpaper.0.dark.webp"
 
-            phone.Settings.EnableAvatar = (typeof options.EnableAvatar === "boolean") ? options.EnableAvatar : false;
+            phone.Settings.EnableAvatar = (typeof options.EnableAvatar === "boolean") ? options.EnableAvatar : true;
             phone.Settings.EnabledSettings = (typeof options.EnabledSettings === "boolean") ? options.EnabledSettings : false;
             phone.Settings.EnableCallRecording = (typeof options.EnableCallRecording === "boolean") ? options.EnableCallRecording : false;
-            phone.Settings.EnableDialPad = (typeof options.EnableDialPad === "boolean") ? options.EnableDialPad : false;
+            phone.Settings.EnableDialPad = (typeof options.EnableDialPad === "boolean") ? options.EnableDialPad : true;
             phone.Settings.EnableMessageStreamSearch = false;
             phone.Settings.EnableAutoAnswer = (typeof options.EnableAutoAnswer === "boolean") ? options.EnableAutoAnswer : false;
             phone.Settings.EnableDoNotDisturb =(typeof options.EnableDoNotDisturb === "boolean") ? options.EnableDoNotDisturb : false;
@@ -592,8 +592,11 @@ const SiperbWorkBenchBuilder = {
             phone.Settings.EnableSMS = false;
             phone.Settings.EnablePush = true;
             phone.Settings.EnableDisplayCallDetailRecords = (typeof options.EnableDisplayCallDetailRecords === "boolean") ? options.EnableDisplayCallDetailRecords : false;
+            phone.Settings.EnableDisplayCallDetailRecords = true;
 
-            phone.Settings.HelloWorld = "Hello World";
+
+            phone.MyAudioinputDevices = [];  
+
             // Before displaying the phone, you should save the settings
             phone.SaveSettings();
 

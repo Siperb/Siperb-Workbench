@@ -248,13 +248,74 @@ console.log(`${c.gray}Server: http://127.0.0.1:${port}${c.reset}`);
 const browser = await chromium.launch({
     headless: true,
     args: [
-        '--use-fake-ui-for-media-stream',   // auto-accept getUserMedia prompts
-        '--use-fake-device-for-media-stream', // provide a fake audio device so WebRTC works
+        '--use-fake-ui-for-media-stream',          // auto-accept getUserMedia prompts
+        '--use-fake-device-for-media-stream',       // provide a fake audio device so WebRTC works
+        '--autoplay-policy=no-user-gesture-required', // allow AudioContext without user gesture
+        '--disable-background-timer-throttling',    // prevent timer throttling in off-screen frames
+        '--disable-renderer-backgrounding',         // keep renderer at full priority
+        '--disable-backgrounding-occluded-windows', // don't throttle occluded windows
         '--disable-web-security',
     ]
 });
 const context = await browser.newContext({ permissions: ['microphone'] });
 const page = await context.newPage();
+
+// Inject media mocks into ALL frames (including phone.html iframe) before any page scripts.
+// In headless mode:
+//   • enumerateDevices() returns no labelled devices → phone.MyAudioinputDevices is undefined
+//     → GetAudioSrcID() crashes with "Cannot read properties of undefined (reading 'length')"
+//   • getUserMedia() hangs inside iframes despite Chrome flags
+// Both are mocked here so the SIP library sees a well-formed fake audio device.
+await page.addInitScript(() => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices) return;
+
+    const FAKE_DEVICE_ID = 'fake-audio-input-0';
+    const FAKE_DEVICE_LABEL = 'Fake Microphone';
+
+    // ── enumerateDevices mock ──────────────────────────────────────────────
+    // Returns one fake audioinput so phone.MyAudioinputDevices is populated.
+    const _origEnum = navigator.mediaDevices.enumerateDevices.bind(navigator.mediaDevices);
+    navigator.mediaDevices.enumerateDevices = async function() {
+        let devices = [];
+        try { devices = await _origEnum(); } catch(_) {}
+        // Ensure at least one audioinput with a real label is present
+        const hasAudio = devices.some(d => d.kind === 'audioinput' && d.label);
+        if (!hasAudio) {
+            devices = [
+                { kind: 'audioinput', deviceId: FAKE_DEVICE_ID, groupId: 'fake-group', label: FAKE_DEVICE_LABEL },
+                ...devices
+            ];
+        }
+        return devices;
+    };
+
+    // ── getUserMedia mock ──────────────────────────────────────────────────
+    // Returns a stream with a live (silent) oscillator so audio tracks have
+    // fully populated capabilities — avoids downstream errors in the SIP lib.
+    navigator.mediaDevices.getUserMedia = async function(constraints) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return new MediaStream();
+        const ctx = new Ctx();
+        if (ctx.state === 'suspended') {
+            try { await ctx.resume(); } catch(_) {}
+        }
+        const dest = ctx.createMediaStreamDestination();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        gain.gain.value = 0;   // silent
+        osc.connect(gain);
+        gain.connect(dest);
+        osc.start();
+        if (constraints && constraints.video) {
+            try {
+                const canvas = Object.assign(document.createElement('canvas'), { width: 640, height: 480 });
+                const vs = canvas.captureStream(15);
+                vs.getVideoTracks().forEach(t => dest.stream.addTrack(t));
+            } catch(_) {}
+        }
+        return dest.stream;
+    };
+});
 
 // Forward TestApp.Log to terminal; suppress all other browser console noise
 page.on('console', msg => {
@@ -263,7 +324,10 @@ page.on('console', msg => {
         console.log(`${c.gray}    ${text}${c.reset}`);
     }
 });
-page.on('pageerror', err => process.stderr.write(`${c.red}[browser error] ${err.message.split('\n')[0]}${c.reset}\n`));
+page.on('pageerror', err => {
+    const lines = (err.stack || err.message).split('\n').slice(0, 8).join('\n');
+    process.stderr.write(`${c.red}[browser error] ${lines}${c.reset}\n`);
+});
 
 await page.goto(runnerUrl);
 
@@ -325,6 +389,15 @@ for (const testFile of testFiles) {
         // 1. Reset TestApp state
         window.TestApp.RunBeforeEach();
         iw.TestApp = window.TestApp;
+
+        // Patch phone.MyAudioinputDevices if empty/undefined — in headless mode
+        // enumerateDevices() returns no labelled devices, so the phone library never
+        // populates this list, causing GetAudioSrcID() to crash when placing a call.
+        if (iw.phone && (!iw.phone.MyAudioinputDevices || iw.phone.MyAudioinputDevices.length === 0)) {
+            iw.phone.MyAudioinputDevices = [
+                { deviceId: 'default', label: 'Fake Microphone', kind: 'audioinput', groupId: 'fake-group' }
+            ];
+        }
 
         // 2. Run beforeRun.js if present (cleans phone state)
         if (beforeRunCode) {

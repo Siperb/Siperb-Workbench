@@ -1,5 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"></head>
-<body>Hello</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <title>Loading Phone</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+          sans-serif;
+        color: #e5e7eb;
+      }
+
+      .loading-shell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.25rem;
+        padding: 2rem 2.25rem;
+        border-radius: 1.5rem;
+        background: radial-gradient(circle at top left, #111827, #020617 55%);
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        box-shadow:
+          0 18px 45px rgba(15, 23, 42, 0.85),
+          0 0 0 1px rgba(15, 23, 42, 0.9);
+      }
+
+      .loading-shell__badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        font-size: 0.65rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        color: #9ca3af;
+      }
+
+      .loading-shell__title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        color: #e5e7eb;
+      }
+
+      .loading-shell__subtitle {
+        font-size: 0.8rem;
+        color: #9ca3af;
+      }
+
+      .loading-shell__animation {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem;
+        border-radius: 1.25rem;
+        background: radial-gradient(circle at top, #0b1220, #020617 60%);
+        border: 1px solid rgba(37, 99, 235, 0.6);
+        box-shadow:
+          0 0 32px rgba(59, 130, 246, 0.35),
+          inset 0 0 0 1px rgba(15, 23, 42, 0.9);
+      }
+
+      .loading-shell__canvas {
+        width: 220px;
+        max-width: 60vw;
+        height: 220px;
+        border-radius: 1rem;
+      }
+
+      .loading-shell__hint {
+        font-size: 0.7rem;
+        color: #64748b;
+      }
+
+      @media (max-width: 480px) {
+        .loading-shell {
+          padding: 1.5rem 1.75rem;
+          border-radius: 1.25rem;
+        }
+
+        .loading-shell__canvas {
+          width: 180px;
+          height: 180px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="loading-shell" aria-label="Loading phone view">
+      <div class="loading-shell__badge">Loading Phone</div>
+      <h1 class="loading-shell__title">Preparing your phone view…</h1>
+      <p class="loading-shell__subtitle">
+        Sit tight while we boot up the test bench phone.
+      </p>
+      <div class="loading-shell__animation">
+        <canvas
+          id="loading-phone-canvas"
+          class="loading-shell__canvas"
+          aria-hidden="true"
+        ></canvas>
+      </div>
+      <p class="loading-shell__hint">This may take a couple of seconds.</p>
+    </main>
+
+    <script type="module">
+      import { DotLottie } from "https://cdn.jsdelivr.net/npm/@lottiefiles/dotlottie-web/+esm";
+
+      const canvas = document.getElementById("loading-phone-canvas");
+
+      if (canvas) {
+        // Uses an official sample animation from LottieFiles docs.
+        new DotLottie({
+          autoplay: true,
+          loop: true,
+          canvas,
+          src: "https://lottie.host/4db68bbd-31f6-4cd8-84eb-189de081159a/IGmMCqhzpt.lottie",
+        });
+      }
+    </script>
+  </body>
 </html>

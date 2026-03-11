@@ -80,7 +80,8 @@ const runnerHtml = `<!DOCTYPE html>
     <script src="./main.js"></script>
 </head>
 <body>
-    <iframe id="phoneFrame" src="./phone.html" style="display:none; width:100%; height:100%; border:none;"></iframe>
+    <!-- position off-screen instead of display:none — Chrome throttles WebRTC/timers inside hidden iframes -->
+    <iframe id="phoneFrame" src="./phone.html" allow="microphone; autoplay; camera" style="position:absolute; left:-9999px; width:1280px; height:800px; border:none;"></iframe>
     <script>
         window.addEventListener('load', async function() {
             const iframe = document.getElementById('phoneFrame');

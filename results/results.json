@@ -1,21 +1,31 @@
 {
-    "timestamp": "2026-03-11T13:54:10.793Z",
-    "total": 1,
-    "passed": 0,
-    "failed": 1,
+    "timestamp": "2026-03-11T14:55:04.253Z",
+    "total": 3,
+    "passed": 3,
+    "failed": 0,
     "results": [
         {
             "name": "calling-tests",
-            "status": "fail",
-            "total": 1,
-            "passed": 0,
-            "failed": 1,
-            "message": "0 of 1 tests passed",
+            "status": "pass",
+            "total": 3,
+            "passed": 3,
+            "failed": 0,
+            "message": "3 of 3 tests passed",
             "results": [
                 {
+                    "name": "1",
+                    "status": "pass",
+                    "message": "ok"
+                },
+                {
+                    "name": "early-reject",
+                    "status": "pass",
+                    "message": "Early Cancel OK: Outbound call 0 seconds Cancelled outbound Cancelled Us"
+                },
+                {
                     "name": "simple-moh",
-                    "status": "fail",
-                    "message": "Call did not end after EndCall (no Hangup/Ended event)"
+                    "status": "pass",
+                    "message": "Simple MOH OK: Outbound call 0 seconds Cancelled outbound Cancelled Us 710"
                 }
             ]
         }
