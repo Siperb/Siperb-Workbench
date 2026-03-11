@@ -32,5 +32,5 @@ window.TestApp = {
     Pass(message) { return this.Update('pass', message); },
     Fail(message) { return this.Update('fail', message); },
 
-    wait(ms) { return new Promise(r => setTimeout(r, ms)); }
+    Wait(ms) { return new Promise(r => setTimeout(r, ms)); }
 };

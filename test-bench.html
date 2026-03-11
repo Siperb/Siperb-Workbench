@@ -8,42 +8,149 @@
     <script src="./main.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { display: flex; height: 100vh; font-family: monospace; font-size: 13px; background: #1a1a1a; color: #e0e0e0; }
+        body { display: flex; height: 100vh; font-family: 'Segoe UI', system-ui, monospace; font-size: 13px; background: #111; color: #ddd; overflow: hidden; }
 
-        /* Left panel */
-        #left { width: 380px; min-width: 280px; display: flex; flex-direction: column; border-right: 1px solid #333; }
-        #toolbar { padding: 10px; background: #222; border-bottom: 1px solid #333; display: flex; flex-direction: column; gap: 8px; }
-        #toolbar h1 { font-size: 13px; color: #888; letter-spacing: 1px; text-transform: uppercase; }
-        #file-row { display: flex; gap: 6px; align-items: center; }
-        #filePicker { display: none; }
-        #pick-btn, #run-btn { padding: 5px 10px; border: 1px solid #555; background: #2a2a2a; color: #ccc; cursor: pointer; border-radius: 3px; font-size: 12px; }
-        #pick-btn:hover, #run-btn:hover { background: #3a3a3a; }
-        #run-btn { background: #1a3a1a; border-color: #3a5a3a; color: #8fc88f; }
-        #run-btn:hover { background: #2a4a2a; }
-        #run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-        #status-bar { font-size: 11px; color: #666; }
-        #phone-status { font-size: 11px; color: #888; }
+        /* ── Left panel ─────────────────────────────────────────────── */
+        #left { width: 360px; min-width: 260px; display: flex; flex-direction: column; border-right: 1px solid #2a2a2a; background: #141414; }
+
+        #toolbar { padding: 14px 14px 10px; background: #181818; border-bottom: 1px solid #252525; display: flex; flex-direction: column; gap: 10px; }
+        #toolbar h1 { font-size: 11px; font-weight: 600; color: #555; letter-spacing: 1.5px; text-transform: uppercase; }
+
+        #phone-status { font-size: 11px; color: #666; }
+        #phone-status.ready { color: #4caf50; }
+        #phone-status.error { color: #e57373; }
+
+        /* Pick row */
+        #pick-row { display: flex; gap: 6px; }
+        .pick-btn {
+            flex: 1; padding: 7px 10px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #aaa; cursor: pointer; border-radius: 5px; font-size: 12px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            transition: background .15s, border-color .15s;
+        }
+        .pick-btn:hover { background: #252525; border-color: #3a3a3a; color: #ccc; }
+        .pick-btn svg { flex-shrink: 0; }
+        #filePicker, #folderPicker { display: none; }
+
+        #status-bar { font-size: 11px; color: #555; min-height: 14px; }
+
+        /* Run button */
+        #run-btn {
+            width: 100%; padding: 10px; border: none; border-radius: 6px;
+            background: #2e7d32; color: #fff; font-size: 13px; font-weight: 600;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            gap: 8px; transition: background .15s, opacity .15s; letter-spacing: .3px;
+        }
+        #run-btn:hover:not(:disabled) { background: #388e3c; }
+        #run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        #run-btn svg { flex-shrink: 0; }
+
+        /* Stat cards */
+        #stat-cards { display: flex; gap: 6px; }
+        .stat-card {
+            flex: 1; padding: 8px 6px 6px; border-radius: 6px; border: 1px solid #252525;
+            background: #181818; text-align: center;
+        }
+        .stat-card .stat-val {
+            font-size: 20px; font-weight: 700; line-height: 1.1;
+            font-variant-numeric: tabular-nums;
+        }
+        .stat-card .stat-lbl { font-size: 9px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; opacity: 0.55; }
+        #stat-total .stat-val { color: #888; }
+        #stat-pass  .stat-val { color: #4caf50; }
+        #stat-fail  .stat-val { color: #e57373; }
 
         /* Test list */
-        #test-list { overflow-y: auto; border-bottom: 1px solid #333; max-height: 200px; }
-        .test-item { padding: 5px 10px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #2a2a2a; }
-        .badge { font-size: 10px; padding: 1px 5px; border-radius: 2px; margin-left: auto; }
-        .badge.pass { background: #1a3a1a; color: #6a9; }
-        .badge.fail { background: #3a1a1a; color: #c66; }
-        .badge.running { background: #1a2a3a; color: #68a; }
+        #test-list { overflow-y: auto; max-height: 200px; border-bottom: 1px solid #1e1e1e; }
+        .suite-header { padding: 5px 12px 3px; font-size: 10px; font-weight: 700; color: #4a9eff; letter-spacing: 1px; text-transform: uppercase; background: #161616; border-bottom: 1px solid #1e1e1e; }
+        .test-item { padding: 5px 12px 5px 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #191919; font-size: 12px; color: #bbb; }
+        .test-item .dot { width: 6px; height: 6px; border-radius: 50%; background: #333; flex-shrink: 0; }
+        .test-item.running .dot { background: #4a9eff; box-shadow: 0 0 5px #4a9eff88; }
+        .test-item.pass .dot { background: #4caf50; }
+        .test-item.fail .dot { background: #e57373; }
+        .test-item .test-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .test-item .test-msg { font-size: 10px; color: #555; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 120px; }
+        .test-item.pass .test-msg { color: #4caf5088; }
+        .test-item.fail .test-msg { color: #e5737388; }
 
         /* Log area */
-        #log-area { flex: 1; overflow-y: auto; padding: 8px; background: #0f0f0f; }
-        .log-line { padding: 2px 0; line-height: 1.5; word-break: break-all; }
-        .log-line.info { color: #888; }
-        .log-line.pass { color: #6a9; }
-        .log-line.fail { color: #c66; }
-        .log-line.log { color: #aaa; }
-        .log-line.section { color: #68a; margin-top: 4px; }
+        #log-area { flex: 1; overflow-y: auto; padding: 10px 12px; background: #0d0d0d; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; }
+        .log-line { padding: 1px 0; line-height: 1.6; word-break: break-all; }
+        .log-line.info   { color: #555; }
+        .log-line.pass   { color: #4caf50; }
+        .log-line.fail   { color: #e57373; }
+        .log-line.log    { color: #888; }
+        .log-line.section { color: #4a9eff; margin-top: 6px; font-weight: 600; }
 
-        /* Right panel */
+        /* ── Right panel ────────────────────────────────────────────── */
         #right { flex: 1; display: flex; flex-direction: column; }
         #phoneFrame { flex: 1; width: 100%; border: none; background: #fff; }
+
+        /* ── Results dialog ─────────────────────────────────────────── */
+        #results-overlay {
+            display: none; position: fixed; inset: 0; background: #000000cc;
+            z-index: 1000; align-items: center; justify-content: center;
+        }
+        #results-overlay.open { display: flex; }
+        #results-dialog {
+            background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 10px;
+            width: 520px; max-width: 92vw; max-height: 80vh; display: flex; flex-direction: column;
+            box-shadow: 0 24px 60px #000a;
+        }
+        #results-header {
+            padding: 18px 20px 14px; border-bottom: 1px solid #252525;
+            display: flex; align-items: center; gap: 12px;
+        }
+        #results-title { font-size: 15px; font-weight: 700; flex: 1; }
+        #results-totals { font-size: 12px; }
+        #results-close {
+            width: 28px; height: 28px; border: 1px solid #333; background: #222;
+            color: #888; cursor: pointer; border-radius: 5px; font-size: 16px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #results-close:hover { background: #2a2a2a; color: #ccc; }
+
+        #results-body { flex: 1; overflow-y: auto; padding: 12px 20px; display: flex; flex-direction: column; gap: 12px; }
+
+        .suite-result { border: 1px solid #252525; border-radius: 6px; overflow: hidden; }
+        .suite-result-header {
+            padding: 8px 12px; background: #1e1e1e;
+            display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600;
+        }
+        .suite-result-header .suite-name { flex: 1; }
+        .suite-pill {
+            font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 700;
+        }
+        .suite-pill.pass { background: #1b3a1f; color: #4caf50; }
+        .suite-pill.fail { background: #3a1b1b; color: #e57373; }
+        .suite-tests { }
+        .suite-test-row {
+            padding: 5px 12px 5px 20px; display: flex; align-items: center; gap: 8px;
+            font-size: 11px; border-top: 1px solid #1e1e1e;
+        }
+        .suite-test-row .r-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+        .suite-test-row.pass .r-dot { background: #4caf50; }
+        .suite-test-row.fail .r-dot { background: #e57373; }
+        .suite-test-row .r-name { flex: 1; color: #ccc; }
+        .suite-test-row .r-msg { font-size: 10px; color: #555; }
+        .suite-test-row.fail .r-msg { color: #e5737388; }
+
+        #results-footer {
+            padding: 14px 20px; border-top: 1px solid #252525;
+            display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+        }
+        #download-btn {
+            padding: 8px 16px; border: 1px solid #2e7d32; background: #1b3a1f;
+            color: #4caf50; cursor: pointer; border-radius: 6px; font-size: 12px; font-weight: 600;
+            display: flex; align-items: center; gap: 6px; transition: background .15s;
+        }
+        #download-btn:hover { background: #243e27; }
+        #close-results-btn {
+            padding: 8px 16px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #aaa; cursor: pointer; border-radius: 6px; font-size: 12px; font-weight: 600;
+            transition: background .15s;
+        }
+        #close-results-btn:hover { background: #252525; color: #ccc; }
     </style>
 </head>
 <body>
@@ -53,13 +160,41 @@
     <div id="toolbar">
         <h1>Siperb Test Bench</h1>
         <div id="phone-status">⏳ Loading phone...</div>
-        <div id="file-row">
+
+        <div id="pick-row">
+            <input type="file" id="folderPicker" webkitdirectory multiple accept=".js">
             <input type="file" id="filePicker" multiple accept=".js">
-            <button id="pick-btn" onclick="pickFiles()">Pick Test Files</button>
-            <button id="run-btn" onclick="runAll()" disabled>▶ Run All</button>
+
+            <button class="pick-btn" onclick="pickFolder()">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z"/>
+                </svg>
+                Pick Folder
+            </button>
+            <button class="pick-btn" onclick="pickFiles()">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1v3.5H13L9.5 1z"/>
+                </svg>
+                Pick Files
+            </button>
         </div>
+
         <div id="status-bar">No files selected</div>
+
+        <button id="run-btn" onclick="runAll()" disabled>
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+            </svg>
+            Run Tests
+        </button>
+
+        <div id="stat-cards">
+            <div class="stat-card" id="stat-total"><div class="stat-val" id="stat-total-val">—</div><div class="stat-lbl">Total</div></div>
+            <div class="stat-card" id="stat-pass"><div class="stat-val" id="stat-pass-val">—</div><div class="stat-lbl">Pass</div></div>
+            <div class="stat-card" id="stat-fail"><div class="stat-val" id="stat-fail-val">—</div><div class="stat-lbl">Failed</div></div>
+        </div>
     </div>
+
     <div id="test-list"></div>
     <div id="log-area"></div>
 </div>
@@ -69,19 +204,47 @@
     <iframe id="phoneFrame" src="./phone.html"></iframe>
 </div>
 
-<script>
-    // ── State ──────────────────────────────────────────────────────────────
-    var testFiles = [];
-    var beforeRunMap = {};
-    var phoneReady = false;
+<!-- Results dialog -->
+<div id="results-overlay">
+    <div id="results-dialog">
+        <div id="results-header">
+            <div id="results-title">Test Results</div>
+            <div id="results-totals"></div>
+            <button id="results-close" onclick="closeResults()">✕</button>
+        </div>
+        <div id="results-body"></div>
+        <div id="results-footer">
+            <button id="download-btn" onclick="downloadResults()">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                </svg>
+                Download JSON
+            </button>
+            <button id="close-results-btn" onclick="closeResults()">Close</button>
+        </div>
+    </div>
+</div>
 
-    // ── Phone bootstrap ────────────────────────────────────────────────────
+<script>
+    // ── State ────────────────────────────────────────────────────────────
+    var testFiles   = [];
+    var beforeRunMap = {};
+    var phoneReady  = false;
+    var lastResults = null;  // stored for download
+
+    // ── Phone bootstrap ──────────────────────────────────────────────────
 
     async function bootstrapPhone() {
         setPhoneStatus('⏳ Loading phone...');
         var iframe = document.getElementById('phoneFrame');
 
-        // Use pre-built TestConfig (runner.html) or fetch test.config.json at runtime
+        // Guard: builder module must be available
+        if (typeof SiperbWorkBenchBuilder === 'undefined') {
+            setPhoneStatus('⚠️ SiperbWorkBenchBuilder not loaded — serve via HTTP (run_tests.sh --ui)', 'error');
+            return;
+        }
+
         var cfg = window.TestConfig;
         if (!cfg) {
             try {
@@ -91,126 +254,137 @@
                 var env = raw.environment || 'testing';
                 cfg = {
                     SESSION_ID: raw.SESSION_ID,
-                    USER_ID: raw.USER_ID,
-                    DEVICE_ID: raw.DEVICE_ID,
+                    USER_ID:    raw.USER_ID,
+                    DEVICE_ID:  raw.DEVICE_ID,
                     phoneVersionTreeUrl: raw['phone-version-tree-' + env],
                     UseLocalFiles: raw.UseLocalFiles || [],
                     Provisioning: null
                 };
             } catch(e) {
-                setPhoneStatus('⚠️ Could not load test.config.json: ' + e.message);
+                setPhoneStatus('⚠️ Could not load test.config.json: ' + e.message, 'error');
                 return;
             }
         }
-
-        // Fetch provisioning at runtime if not pre-built
         if (!cfg.Provisioning || Object.keys(cfg.Provisioning).length === 0) {
             setPhoneStatus('⏳ Fetching provisioning...');
             try {
-                cfg.Provisioning = await SiperbWorkBenchBuilder.GetProvisioning({
-                    UserId: cfg.USER_ID,
-                    DeviceToken: cfg.DEVICE_ID,
-                    SessionToken: cfg.SESSION_ID,
-                }) || {};
-            } catch(e) {
-                cfg.Provisioning = {};
-            }
+                // Fetch directly (same as build.js) — GetProvisioning gates on Platform==='script' and returns null otherwise
+                var provUrl = 'https://api.siperb.com/Users/' + cfg.USER_ID + '/Devices/' + cfg.DEVICE_ID + '/?password=yes&settings_json=yes';
+                var provResp = await fetch(provUrl, { headers: { 'Content-Type': 'application/json', 'X-Api-Key': cfg.SESSION_ID } });
+                if (provResp.ok) {
+                    var provData = await provResp.json();
+                    cfg.Provisioning = provData.Settings_json || {};
+                } else {
+                    cfg.Provisioning = {};
+                }
+            } catch(e) { cfg.Provisioning = {}; }
+        }
+        setPhoneStatus('⏳ Loading phone...');
+
+        function withTimeout(promise, ms, label) {
+            var timer = new Promise(function(_, rej) {
+                setTimeout(function() { rej(new Error(label + ' timed out after ' + ms/1000 + 's')); }, ms);
+            });
+            return Promise.race([promise, timer]);
         }
 
-        setPhoneStatus('⏳ Loading phone...');
         try {
-            await SiperbWorkBenchBuilder.LoadBrowserPhone(iframe, {
-                treeUrl: cfg.phoneVersionTreeUrl,
-                UseLocalFiles: cfg.UseLocalFiles
-            });
-            await SiperbWorkBenchBuilder.ProvisionPhone({
-                Provisioning: cfg.Provisioning,
-                PhoneFrame: iframe,
-                ProfileUserId: cfg.DEVICE_ID,
-                SessionId: cfg.SESSION_ID,
-                UserId: cfg.USER_ID,
-            });
+            await withTimeout(SiperbWorkBenchBuilder.LoadBrowserPhone(iframe, {
+                treeUrl: cfg.phoneVersionTreeUrl, UseLocalFiles: cfg.UseLocalFiles
+            }), 30000, 'LoadBrowserPhone');
+            await withTimeout(SiperbWorkBenchBuilder.ProvisionPhone({
+                Provisioning: cfg.Provisioning, PhoneFrame: iframe,
+                ProfileUserId: cfg.DEVICE_ID, SessionId: cfg.SESSION_ID, UserId: cfg.USER_ID,
+            }), 30000, 'ProvisionPhone');
             phoneReady = true;
             window.__phoneReady = true;
-            setPhoneStatus('✓ Phone ready');
+            setPhoneStatus('✓ Phone ready', 'ready');
             document.getElementById('run-btn').disabled = (testFiles.length === 0);
         } catch(e) {
-            setPhoneStatus('✗ Phone failed: ' + (e.message || e));
+            setPhoneStatus('✗ Phone failed: ' + (e.message || e), 'error');
             window.__phoneError = String(e);
         }
     }
 
-    function setPhoneStatus(msg) {
-        document.getElementById('phone-status').textContent = msg;
+    function setPhoneStatus(msg, cls) {
+        var el = document.getElementById('phone-status');
+        el.textContent = msg;
+        el.className = cls || '';
     }
 
-    // ── File picking ───────────────────────────────────────────────────────
+    // ── File / folder picking ────────────────────────────────────────────
 
-    function pickFiles() {
-        document.getElementById('filePicker').click();
-    }
+    function pickFolder() { document.getElementById('folderPicker').click(); }
+    function pickFiles()  { document.getElementById('filePicker').click(); }
 
-    document.getElementById('filePicker').addEventListener('change', async function(e) {
-        var files = Array.from(e.target.files);
-        testFiles = [];
+    async function loadFileList(files) {
+        testFiles    = [];
         beforeRunMap = {};
+        var arr = Array.from(files).filter(function(f) { return f.name.endsWith('.js'); });
 
-        var beforeRunFiles = files.filter(function(f) { return f.name === 'beforeRun.js'; });
-        var actualTests = files.filter(function(f) { return f.name !== 'beforeRun.js' && f.name.endsWith('.js'); });
-
-        for (var i = 0; i < beforeRunFiles.length; i++) {
-            var f = beforeRunFiles[i];
-            var code = await f.text();
+        for (var f of arr) {
+            var code   = await f.text();
             var folder = f.webkitRelativePath
                 ? f.webkitRelativePath.split('/').slice(-2, -1)[0]
                 : 'default';
-            beforeRunMap[folder] = code;
+            if (f.name === 'beforeRun.js') {
+                beforeRunMap[folder] = code;
+            } else {
+                testFiles.push({ name: f.name.replace('.js', ''), folder: folder, code: code, status: 'pending' });
+            }
         }
 
-        for (var i = 0; i < actualTests.length; i++) {
-            var f = actualTests[i];
-            var code = await f.text();
-            var folder = f.webkitRelativePath
-                ? f.webkitRelativePath.split('/').slice(-2, -1)[0]
-                : 'default';
-            testFiles.push({ name: f.name.replace('.js', ''), folder: folder, code: code, status: 'pending' });
-        }
+        // Sort by folder then name
+        testFiles.sort(function(a, b) {
+            return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name);
+        });
 
         renderTestList();
         document.getElementById('status-bar').textContent = testFiles.length + ' test(s) selected';
-        if (testFiles.length > 0 && phoneReady) {
-            document.getElementById('run-btn').disabled = false;
-        }
+        document.getElementById('run-btn').disabled = !(testFiles.length > 0 && phoneReady);
+    }
+
+    document.getElementById('folderPicker').addEventListener('change', function(e) {
+        loadFileList(e.target.files);
+        e.target.value = '';
+    });
+    document.getElementById('filePicker').addEventListener('change', function(e) {
+        loadFileList(e.target.files);
         e.target.value = '';
     });
 
-    // ── Rendering ──────────────────────────────────────────────────────────
+    // ── Render test list ─────────────────────────────────────────────────
 
     function renderTestList() {
         var list = document.getElementById('test-list');
         list.innerHTML = '';
+        var lastFolder = null;
         for (var i = 0; i < testFiles.length; i++) {
             var t = testFiles[i];
+            if (t.folder !== lastFolder) {
+                lastFolder = t.folder;
+                var hdr = document.createElement('div');
+                hdr.className = 'suite-header';
+                hdr.textContent = t.folder;
+                list.appendChild(hdr);
+            }
             var el = document.createElement('div');
             el.className = 'test-item';
             el.id = 'test-item-' + i;
-            var span = document.createElement('span');
-            span.textContent = t.folder + '/' + t.name;
-            el.appendChild(span);
+            el.innerHTML = '<div class="dot"></div>'
+                + '<span class="test-label">' + t.name + '</span>'
+                + '<span class="test-msg"></span>';
             list.appendChild(el);
         }
     }
 
-    function updateTestItem(index, status) {
+    function updateTestItem(index, status, msg) {
         testFiles[index].status = status;
         var el = document.getElementById('test-item-' + index);
         if (!el) return;
-        var badge = el.querySelector('.badge');
-        if (badge) badge.remove();
-        var b = document.createElement('span');
-        b.className = 'badge ' + status;
-        b.textContent = status;
-        el.appendChild(b);
+        el.className = 'test-item ' + status;
+        var msgEl = el.querySelector('.test-msg');
+        if (msgEl && msg) msgEl.textContent = msg;
     }
 
     function appendLog(msg, type) {
@@ -222,73 +396,149 @@
         log.scrollTop = log.scrollHeight;
     }
 
-    // ── Test runner ────────────────────────────────────────────────────────
+    // ── Stats cards ──────────────────────────────────────────────────────
+
+    function updateStats(total, pass, fail) {
+        document.getElementById('stat-total-val').textContent = total;
+        document.getElementById('stat-pass-val').textContent  = pass;
+        document.getElementById('stat-fail-val').textContent  = fail;
+    }
+
+    // ── Test runner ──────────────────────────────────────────────────────
 
     async function runAll() {
-        if (!phoneReady) { appendLog('Phone not ready yet.', 'fail'); return; }
+        if (!phoneReady) { appendLog('Phone not ready.', 'fail'); return; }
         document.getElementById('run-btn').disabled = true;
         document.getElementById('log-area').innerHTML = '';
+        lastResults = { timestamp: new Date().toISOString(), suites: {} };
 
+        var passCount = 0, failCount = 0;
+        updateStats(testFiles.length, 0, 0);
+
+        var lastFolder = null;
         for (var i = 0; i < testFiles.length; i++) {
             var t = testFiles[i];
+            if (t.folder !== lastFolder) {
+                lastFolder = t.folder;
+                appendLog('── ' + t.folder + ' ──', 'section');
+            }
             updateTestItem(i, 'running');
-            appendLog('── ' + t.folder + '/' + t.name + ' ──', 'section');
             var result = await runTest(t);
-            updateTestItem(i, result.status);
-            appendLog((result.status === 'pass' ? '✓ ' : '✗ ') + result.message, result.status);
+            updateTestItem(i, result.status, result.message);
+            appendLog('  ' + (result.status === 'pass' ? '✓' : '✗') + ' ' + t.name + '  ' + result.message, result.status);
+
+            if (result.status === 'pass') passCount++; else failCount++;
+            updateStats(testFiles.length, passCount, failCount);
+
+            if (!lastResults.suites[t.folder]) lastResults.suites[t.folder] = [];
+            lastResults.suites[t.folder].push({ name: t.name, status: result.status, message: result.message });
         }
 
         document.getElementById('run-btn').disabled = false;
+        showResults();
     }
 
     async function runTest(t) {
         var iframe = document.getElementById('phoneFrame');
         var iw = iframe.contentWindow;
 
-        // Pipe TestApp.Log to left panel
         var origLog = window.TestApp.Log.bind(window.TestApp);
-        window.TestApp.Log = function(msg) {
-            origLog(msg);
-            appendLog('  [log] ' + String(msg), 'log');
-        };
+        window.TestApp.Log = function(msg) { origLog(msg); appendLog('    ' + String(msg), 'log'); };
 
-        // 1. Reset TestApp state
         window.TestApp.RunBeforeEach();
         iw.TestApp = window.TestApp;
 
-        // 2. Run beforeRun.js if available
         var beforeRunCode = beforeRunMap[t.folder] || null;
         if (beforeRunCode) {
             try {
-                var beforeFn = new iw.Function('phone', 'TestApp',
+                await (new iw.Function('phone', 'TestApp',
                     'return (async () => { ' + beforeRunCode + ' })()'
-                );
-                await beforeFn(iw.phone, iw.TestApp);
-                appendLog('  [setup] beforeRun completed', 'info');
+                ))(iw.phone, iw.TestApp);
             } catch(e) {
                 return { status: 'fail', message: 'beforeRun failed: ' + e.message };
             }
         }
 
-        // 3. Reset result so beforeRun's TestApp.Pass doesn't bleed into test result
         iw.__testResult = null;
         window.__testResult = null;
         window.TestApp._result = null;
 
-        // 4. Run the test
         try {
-            var fn = new iw.Function('phone', 'TestApp',
+            await (new iw.Function('phone', 'TestApp',
                 'return (async () => { ' + t.code + ' })()'
-            );
-            await fn(iw.phone, iw.TestApp);
+            ))(iw.phone, iw.TestApp);
             return iw.__testResult || window.__testResult || { status: 'pass', message: 'ok' };
         } catch(e) {
             return { status: 'fail', message: e.message };
         }
     }
 
-    // ── Init ───────────────────────────────────────────────────────────────
+    // ── Results dialog ───────────────────────────────────────────────────
 
+    function showResults() {
+        var body = document.getElementById('results-body');
+        body.innerHTML = '';
+
+        var totalPass = 0, totalFail = 0;
+
+        for (var [suite, tests] of Object.entries(lastResults.suites)) {
+            var pass = tests.filter(function(t) { return t.status === 'pass'; }).length;
+            var fail = tests.length - pass;
+            totalPass += pass; totalFail += fail;
+
+            var div = document.createElement('div');
+            div.className = 'suite-result';
+            var headerHtml = '<div class="suite-result-header">'
+                + '<span class="suite-name">' + suite + '</span>'
+                + '<span class="suite-pill ' + (fail === 0 ? 'pass' : 'fail') + '">'
+                + pass + '/' + tests.length + '</span>'
+                + '</div><div class="suite-tests">';
+            var rowsHtml = '';
+            for (var t of tests) {
+                rowsHtml += '<div class="suite-test-row ' + t.status + '">'
+                    + '<div class="r-dot"></div>'
+                    + '<span class="r-name">' + t.name + '</span>'
+                    + '<span class="r-msg">' + t.message + '</span>'
+                    + '</div>';
+            }
+            div.innerHTML = headerHtml + rowsHtml + '</div>';
+            body.appendChild(div);
+        }
+
+        var total = totalPass + totalFail;
+        var titleEl = document.getElementById('results-title');
+        titleEl.textContent = totalFail === 0 ? '✓ All Tests Passed' : '✗ Tests Failed';
+        titleEl.style.color = totalFail === 0 ? '#4caf50' : '#e57373';
+
+        document.getElementById('results-totals').innerHTML =
+            '<span style="color:' + (totalFail===0?'#4caf50':'#e57373') + ';font-weight:700">'
+            + totalPass + '/' + total + ' passed</span>';
+
+        document.getElementById('results-overlay').classList.add('open');
+    }
+
+    function closeResults() {
+        document.getElementById('results-overlay').classList.remove('open');
+    }
+
+    function downloadResults() {
+        if (!lastResults) return;
+        var ts  = new Date().toISOString().replace(/[:.]/g, '-');
+        var json = JSON.stringify(lastResults, null, 2);
+        var blob = new Blob([json], { type: 'application/json' });
+        var url  = URL.createObjectURL(blob);
+        var a    = document.createElement('a');
+        a.href = url; a.download = 'test-results-' + ts + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    // Close on overlay click
+    document.getElementById('results-overlay').addEventListener('click', function(e) {
+        if (e.target === this) closeResults();
+    });
+
+    // ── Init ─────────────────────────────────────────────────────────────
     window.addEventListener('load', bootstrapPhone);
 </script>
 </body>

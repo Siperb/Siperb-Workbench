@@ -624,7 +624,7 @@ const SiperbWorkBenchBuilder = {
                     UserAgentStr: "Siperb/0.4 (Script) "+ navigator.userAgent,
                     // RegisterContactParams : AdditionalContactParams //(this is for push notifications)
                 }
-                if(provisioning.RegistrationMode == "Proxy" || provisioning.SipWssServer.endsWith(".siperb.com")){
+                if(provisioning.RegistrationMode == "Proxy" || (provisioning.SipWssServer && provisioning.SipWssServer.endsWith(".siperb.com"))){
                     phoneOptions.ExtraRegisterHeaders = {
                         "X-Siperb-Sid": options.SessionId,
                         "X-Siperb-Uid": options.UserId,

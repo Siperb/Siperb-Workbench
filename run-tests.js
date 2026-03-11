@@ -249,7 +249,13 @@ const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext();
 const page = await context.newPage();
 
-// Only surface unhandled page errors — suppress console noise (warnings, %c format strings, etc.)
+// Forward TestApp.Log to terminal; suppress all other browser console noise
+page.on('console', msg => {
+    const text = msg.text();
+    if (text.startsWith('[TestApp]')) {
+        console.log(`${c.gray}    ${text}${c.reset}`);
+    }
+});
 page.on('pageerror', err => process.stderr.write(`${c.red}[browser error] ${err.message.split('\n')[0]}${c.reset}\n`));
 
 await page.goto(runnerUrl);
