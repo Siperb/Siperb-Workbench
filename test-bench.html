@@ -29,10 +29,25 @@
             transition: background .15s, border-color .15s;
         }
         .pick-btn:hover { background: #252525; border-color: #3a3a3a; color: #ccc; }
+        .pick-btn.active { border-color: #4a9eff; color: #4a9eff; background: #141e2e; }
         .pick-btn svg { flex-shrink: 0; }
         #filePicker, #folderPicker { display: none; }
 
-        #status-bar { font-size: 11px; color: #555; min-height: 14px; }
+        /* URL row */
+        #url-row { display: none; gap: 6px; }
+        #url-row.open { display: flex; }
+        #github-url-input {
+            flex: 1; padding: 6px 8px; border: 1px solid #2e2e2e; border-radius: 5px;
+            background: #161616; color: #ccc; font-size: 11px; outline: none; min-width: 0;
+        }
+        #github-url-input:focus { border-color: #4a9eff; }
+        #github-url-input::placeholder { color: #3a3a3a; }
+        #fetch-url-btn {
+            padding: 6px 10px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #aaa; cursor: pointer; border-radius: 5px; font-size: 11px; white-space: nowrap;
+            transition: background .15s;
+        }
+        #fetch-url-btn:hover { background: #252525; color: #ccc; }
 
         /* Run button */
         #run-btn {
@@ -169,17 +184,27 @@
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9z"/>
                 </svg>
-                Pick Folder
+                Folder
             </button>
             <button class="pick-btn" onclick="pickFiles()">
                 <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M4 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.5L9.5 0H4zm5.5 1v3.5H13L9.5 1z"/>
                 </svg>
-                Pick Files
+                Files
+            </button>
+            <button class="pick-btn" id="url-btn" onclick="toggleUrlRow()">
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>
+                    <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>
+                </svg>
+                From URL
             </button>
         </div>
 
-        <div id="status-bar">No files selected</div>
+        <div id="url-row">
+            <input type="text" id="github-url-input" placeholder="https://github.com/owner/repo/tree/branch/path">
+            <button id="fetch-url-btn" onclick="fetchFromUrl()">Fetch</button>
+        </div>
 
         <button id="run-btn" onclick="runAll()" disabled>
             <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
@@ -317,6 +342,14 @@
     function pickFolder() { document.getElementById('folderPicker').click(); }
     function pickFiles()  { document.getElementById('filePicker').click(); }
 
+    function toggleUrlRow() {
+        var row = document.getElementById('url-row');
+        var btn = document.getElementById('url-btn');
+        var open = row.classList.toggle('open');
+        btn.classList.toggle('active', open);
+        if (open) document.getElementById('github-url-input').focus();
+    }
+
     async function loadFileList(files) {
         testFiles    = [];
         beforeRunMap = {};
@@ -334,15 +367,95 @@
             }
         }
 
-        // Sort by folder then name
         testFiles.sort(function(a, b) {
             return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name);
         });
 
         renderTestList();
-        document.getElementById('status-bar').textContent = testFiles.length + ' test(s) selected';
         document.getElementById('run-btn').disabled = !(testFiles.length > 0 && phoneReady);
     }
+
+    async function loadRawFiles(rawFiles) {
+        // rawFiles: [{ name, folder, code }]
+        testFiles    = [];
+        beforeRunMap = {};
+        for (var f of rawFiles) {
+            if (f.name === 'beforeRun.js') {
+                beforeRunMap[f.folder] = f.code;
+            } else {
+                testFiles.push({ name: f.name.replace('.js', ''), folder: f.folder, code: f.code, status: 'pending' });
+            }
+        }
+        testFiles.sort(function(a, b) {
+            return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name);
+        });
+        renderTestList();
+        document.getElementById('run-btn').disabled = !(testFiles.length > 0 && phoneReady);
+    }
+
+    // ── GitHub URL fetching ──────────────────────────────────────────────
+
+    async function fetchFromUrl() {
+        var rawUrl = document.getElementById('github-url-input').value.trim();
+        if (!rawUrl) return;
+
+        var btn = document.getElementById('fetch-url-btn');
+        btn.textContent = 'Fetching…';
+        btn.disabled = true;
+
+        try {
+            var match = rawUrl.match(/github\.com\/([^\/]+)\/([^\/]+)\/tree\/([^\/]+)\/?(.*)$/);
+            if (!match) throw new Error('Paste a GitHub tree URL like: github.com/owner/repo/tree/branch/path');
+
+            var owner = match[1], repo = match[2], branch = match[3], basePath = match[4].replace(/\/$/, '');
+            var collected = [];
+            await fetchGitHubDir(owner, repo, branch, basePath, basePath, collected);
+
+            if (!collected.length) throw new Error('No .js files found at that path');
+            await loadRawFiles(collected);
+
+            // Collapse URL row after success
+            document.getElementById('url-row').classList.remove('open');
+            document.getElementById('url-btn').classList.remove('active');
+        } catch(e) {
+            appendLog('GitHub fetch error: ' + e.message, 'fail');
+        }
+
+        btn.textContent = 'Fetch';
+        btn.disabled = false;
+    }
+
+    async function fetchGitHubDir(owner, repo, branch, path, basePath, collected) {
+        var apiUrl = 'https://api.github.com/repos/' + owner + '/' + repo
+            + '/contents/' + encodeURIComponent(path).replace(/%2F/g, '/') + '?ref=' + encodeURIComponent(branch);
+        var resp = await fetch(apiUrl, { headers: { Accept: 'application/vnd.github.v3+json' } });
+        if (!resp.ok) throw new Error('GitHub API ' + resp.status + ' for ' + path);
+        var items = await resp.json();
+
+        for (var item of items) {
+            if (item.type === 'file' && item.name.endsWith('.js')) {
+                var codeResp = await fetch(item.download_url);
+                if (!codeResp.ok) throw new Error('Failed to download ' + item.name);
+                var code = await codeResp.text();
+                // folder = immediate parent dir relative to basePath
+                var parts = item.path.split('/');
+                var folder = parts.length > 1 ? parts[parts.length - 2] : 'default';
+                // If the file sits directly in basePath, group by basePath's last segment
+                if (item.path === basePath + '/' + item.name || parts.length === 1) {
+                    var bParts = basePath.split('/');
+                    folder = bParts[bParts.length - 1] || 'default';
+                }
+                collected.push({ name: item.name, folder: folder, code: code });
+            } else if (item.type === 'dir') {
+                await fetchGitHubDir(owner, repo, branch, item.path, basePath, collected);
+            }
+        }
+    }
+
+    document.getElementById('github-url-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') fetchFromUrl();
+        if (e.key === 'Escape') toggleUrlRow();
+    });
 
     document.getElementById('folderPicker').addEventListener('change', function(e) {
         loadFileList(e.target.files);

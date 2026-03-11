@@ -245,8 +245,15 @@ const runnerUrl = `http://127.0.0.1:${port}/runner.html`;
 console.log(`${c.gray}Server: http://127.0.0.1:${port}${c.reset}`);
 
 // Launch Playwright
-const browser = await chromium.launch({ headless: true });
-const context = await browser.newContext();
+const browser = await chromium.launch({
+    headless: true,
+    args: [
+        '--use-fake-ui-for-media-stream',   // auto-accept getUserMedia prompts
+        '--use-fake-device-for-media-stream', // provide a fake audio device so WebRTC works
+        '--disable-web-security',
+    ]
+});
+const context = await browser.newContext({ permissions: ['microphone'] });
 const page = await context.newPage();
 
 // Forward TestApp.Log to terminal; suppress all other browser console noise
