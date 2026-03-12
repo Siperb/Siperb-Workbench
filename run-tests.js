@@ -31,6 +31,30 @@ const c = {
     gray:   '\x1b[90m',
 };
 
+
+// Ensure results folder exists
+const resultsDir = resolve(__dirname, 'results');
+if (!existsSync(resultsDir)) mkdirSync(resultsDir, { recursive: true });
+
+// ── run.log tee ──────────────────────────────────────────────────────────────
+// All output goes to the terminal AND is appended to run.log (ANSI-stripped).
+
+// LOG file saves to the tests folder
+const LOG_FILE = resolve(__dirname, 'results', 'run.log');
+const stripAnsi = s => s.replace(/\x1b\[[0-9;]*m/g, '');
+
+// Truncate log file at start of each run
+writeFileSync(LOG_FILE, `Run started: ${new Date().toISOString()}\n`);
+
+function log(line = '')  {
+    console.log(line);
+    writeFileSync(LOG_FILE, stripAnsi(line) + '\n', { flag: 'a' });
+}
+function logErr(line = '') {
+    process.stderr.write(line + '\n');
+    writeFileSync(LOG_FILE, stripAnsi(line) + '\n', { flag: 'a' });
+}
+
 // ── CLI argument parsing ────────────────────────────────────────────────────
 //
 // Usage:
@@ -56,7 +80,7 @@ function parseArgs() {
                 if (st.isDirectory()) result.folder = p;
                 else result.file = p;
             } catch (_) {
-                console.error(`Path not found: ${arg}`);
+                logErr(`Path not found: ${arg}`);
                 process.exit(1);
             }
         }
@@ -117,7 +141,7 @@ function writeResults(suiteResultsMap) {
         if (!existsSync(suiteDir)) mkdirSync(suiteDir, { recursive: true });
         writeFileSync(join(suiteDir, 'results.json'), JSON.stringify(suiteResult, null, 4));
         const suiteColor = failed === 0 ? c.green : c.red;
-        console.log(`${suiteColor}${passed}/${total} passed${c.reset}  ${c.dim}→ ${suiteName}${c.reset}`);
+        log(`${suiteColor}${passed}/${total} passed${c.reset}  ${c.dim}→ ${suiteName}${c.reset}`);
 
         rootResults.push({
             name: suiteName,
@@ -140,9 +164,10 @@ function writeResults(suiteResultsMap) {
     writeFileSync(join(resultsDir, 'results.json'), JSON.stringify(rootResult, null, 4));
     const allPassed = totalFailed === 0;
     const totalColor = allPassed ? c.green : c.red;
-    console.log(`\n${'═'.repeat(40)}`);
-    console.log(`${c.bold}${totalColor}${totalPassed}/${totalTests} passed${c.reset}${c.bold}  (${totalFailed} failed)${c.reset}`);
-    console.log(`${'═'.repeat(40)}\n`);
+    log(`\n${'═'.repeat(40)}`);
+    log(`${c.bold}${totalColor}${totalPassed}/${totalTests} passed${c.reset}${c.bold}  (${totalFailed} failed)${c.reset}`);
+    log(`${'═'.repeat(40)}\n`);
+    log(`Log saved to: run.log`);
 }
 
 // ── Local HTTP server (avoids file:// CORS restrictions on ES modules) ──────
@@ -200,6 +225,15 @@ function startServer(root) {
                     res.end(readFileSync(filePath));
                     return;
                 }
+                // Directory → serve index.html if it exists
+                if (stat.isDirectory()) {
+                    const indexPath = join(filePath, 'index.html');
+                    if (existsSync(indexPath)) {
+                        res.writeHead(200, { 'Content-Type': 'text/html' });
+                        res.end(readFileSync(indexPath));
+                        return;
+                    }
+                }
             } catch(_) {}
             res.writeHead(404); res.end('Not found');
         });
@@ -214,7 +248,7 @@ const testsRoot = resolve(__dirname, 'tests');
 const runnerHtmlPath = resolve(__dirname, 'runner.html');
 
 if (!existsSync(runnerHtmlPath)) {
-    console.error('Error: runner.html not found. Run "node build.js" first.');
+    logErr('Error: runner.html not found. Run "node build.js" first.');
     process.exit(1);
 }
 
@@ -222,27 +256,27 @@ if (!existsSync(runnerHtmlPath)) {
 let testFiles = [];
 if (args.file) {
     const f = resolve(__dirname, args.file);
-    if (!existsSync(f)) { console.error(`File not found: ${f}`); process.exit(1); }
+    if (!existsSync(f)) { logErr(`File not found: ${f}`); process.exit(1); }
     testFiles = [f];
 } else if (args.folder) {
     const d = resolve(__dirname, args.folder);
-    if (!existsSync(d)) { console.error(`Folder not found: ${d}`); process.exit(1); }
+    if (!existsSync(d)) { logErr(`Folder not found: ${d}`); process.exit(1); }
     testFiles = collectTestFiles(d);
 } else {
     testFiles = collectTestFiles(testsRoot);
 }
 
 if (testFiles.length === 0) {
-    console.log('No test files found.');
+    log('No test files found.');
     process.exit(0);
 }
 
-console.log(`${c.bold}Running ${testFiles.length} test(s)...${c.reset}`);
+log(`${c.bold}Running ${testFiles.length} test(s)...${c.reset}`);
 
 // Start local HTTP server to avoid file:// CORS restrictions on ES modules
 const { server, port } = await startServer(__dirname);
 const runnerUrl = `http://127.0.0.1:${port}/runner.html`;
-console.log(`${c.gray}Server: http://127.0.0.1:${port}${c.reset}`);
+log(`${c.gray}Server: http://127.0.0.1:${port}${c.reset}`);
 
 // Launch Playwright
 const browser = await chromium.launch({
@@ -321,35 +355,35 @@ await page.addInitScript(() => {
 page.on('console', msg => {
     const text = msg.text();
     if (text.startsWith('[TestApp]')) {
-        console.log(`${c.gray}    ${text}${c.reset}`);
+        log(`${c.gray}    ${text}${c.reset}`);
     }
 });
 page.on('pageerror', err => {
     const lines = (err.stack || err.message).split('\n').slice(0, 8).join('\n');
-    process.stderr.write(`${c.red}[browser error] ${lines}${c.reset}\n`);
+    logErr(`${c.red}[browser error] ${lines}${c.reset}`);
 });
 
 await page.goto(runnerUrl);
 
 // Wait for phone to be provisioned and ready
-console.log(`${c.gray}Waiting for phone to be ready...${c.reset}`);
+log(`${c.gray}Waiting for phone to be ready...${c.reset}`);
 try {
     await page.waitForFunction(() => window.__phoneReady === true || window.__phoneError !== undefined, {
         timeout: 30000
     });
 } catch(e) {
-    console.error('Timeout: Phone did not become ready within 30 seconds.');
+    logErr('Timeout: Phone did not become ready within 30 seconds.');
     await browser.close();
     process.exit(1);
 }
 
 const phoneError = await page.evaluate(() => window.__phoneError);
 if (phoneError) {
-    console.error(`Phone failed to load: ${phoneError}`);
+    logErr(`Phone failed to load: ${phoneError}`);
     await browser.close();
     process.exit(1);
 }
-console.log(`${c.green}Phone ready.${c.reset}`);
+log(`${c.green}Phone ready.${c.reset}`);
 
 // Group test files by suite (parent directory name)
 const suiteResultsMap = {};
@@ -374,9 +408,9 @@ for (const testFile of testFiles) {
         currentSuite = suiteName;
         const count = suiteFileCounts[suiteName];
         const bar = '═'.repeat(40);
-        console.log(`\n${c.cyan}${bar}${c.reset}`);
-        console.log(`${c.bold}${c.cyan}  ${suiteName}${c.reset}${c.gray}  (${count} test${count !== 1 ? 's' : ''})${c.reset}`);
-        console.log(`${c.cyan}${bar}${c.reset}`);
+        log(`\n${c.cyan}${bar}${c.reset}`);
+        log(`${c.bold}${c.cyan}  ${suiteName}${c.reset}${c.gray}  (${count} test${count !== 1 ? 's' : ''})${c.reset}`);
+        log(`${c.cyan}${bar}${c.reset}`);
     }
 
     const result = await page.evaluate(async ([testCode, beforeRunCode, testName]) => {
@@ -431,7 +465,7 @@ for (const testFile of testFiles) {
     const pass = result.status === 'pass';
     const statusIcon = pass ? `${c.green}✓${c.reset}` : `${c.red}✗${c.reset}`;
     const msgColor = pass ? c.gray : c.red;
-    console.log(`  ${statusIcon} ${c.white}${testName}${c.reset}  ${msgColor}${result.message}${c.reset}`);
+    log(`  ${statusIcon} ${c.white}${testName}${c.reset}  ${msgColor}${result.message}${c.reset}`);
 
     if (!suiteResultsMap[suiteName]) suiteResultsMap[suiteName] = [];
     suiteResultsMap[suiteName].push({ name: testName, status: result.status, message: result.message });

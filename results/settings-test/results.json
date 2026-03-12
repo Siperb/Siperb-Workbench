@@ -1,13 +1,13 @@
 {
-    "timestamp": "2026-03-11T13:36:04.049Z",
-    "passed": 1,
-    "failed": 0,
+    "timestamp": "2026-03-12T07:44:07.936Z",
+    "passed": 0,
+    "failed": 1,
     "total": 1,
     "results": [
         {
             "name": "abc",
-            "status": "pass",
-            "message": "Settings Test"
+            "status": "fail",
+            "message": "HelloWorld is undefined, expected Hello World"
         }
     ]
 }

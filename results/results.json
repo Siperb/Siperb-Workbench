@@ -1,16 +1,46 @@
 {
-    "timestamp": "2026-03-11T14:55:04.253Z",
-    "total": 3,
-    "passed": 3,
-    "failed": 0,
+    "timestamp": "2026-03-12T07:44:07.936Z",
+    "total": 9,
+    "passed": 7,
+    "failed": 2,
     "results": [
         {
-            "name": "calling-tests",
+            "name": "buddy-tests",
             "status": "pass",
-            "total": 3,
-            "passed": 3,
+            "total": 4,
+            "passed": 4,
             "failed": 0,
-            "message": "3 of 3 tests passed",
+            "message": "4 of 4 tests passed",
+            "results": [
+                {
+                    "name": "buddy-add",
+                    "status": "pass",
+                    "message": "Buddy added"
+                },
+                {
+                    "name": "buddy-delete",
+                    "status": "pass",
+                    "message": "Buddy deleted"
+                },
+                {
+                    "name": "buddy-update",
+                    "status": "pass",
+                    "message": "Buddies updated successfully with display name: TestBuddy UPDATED"
+                },
+                {
+                    "name": "load-buddies",
+                    "status": "pass",
+                    "message": "Buddies loaded successfully with 1 buddies"
+                }
+            ]
+        },
+        {
+            "name": "calling-tests",
+            "status": "fail",
+            "total": 3,
+            "passed": 2,
+            "failed": 1,
+            "message": "2 of 3 tests passed",
             "results": [
                 {
                     "name": "1",
@@ -24,8 +54,38 @@
                 },
                 {
                     "name": "simple-moh",
+                    "status": "fail",
+                    "message": "MyBuddies.length is 2, expected 1"
+                }
+            ]
+        },
+        {
+            "name": "message-tests",
+            "status": "pass",
+            "total": 1,
+            "passed": 1,
+            "failed": 0,
+            "message": "1 of 1 tests passed",
+            "results": [
+                {
+                    "name": "message-add",
                     "status": "pass",
-                    "message": "Simple MOH OK: Outbound call 0 seconds Cancelled outbound Cancelled Us 710"
+                    "message": "Message added"
+                }
+            ]
+        },
+        {
+            "name": "settings-test",
+            "status": "fail",
+            "total": 1,
+            "passed": 0,
+            "failed": 1,
+            "message": "0 of 1 tests passed",
+            "results": [
+                {
+                    "name": "abc",
+                    "status": "fail",
+                    "message": "HelloWorld is undefined, expected Hello World"
                 }
             ]
         }

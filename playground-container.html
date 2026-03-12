@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siperb Playground</title>
+    <script type="module" src="./builder/SiperbWorkBenchBuilder.js"></script>
+    <script src="./main.js"></script>
+    <link rel="icon" href="./favicon.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            display: flex; height: 100vh;
+            font-family: 'Segoe UI', system-ui, monospace; font-size: 13px;
+            background: #111; color: #ddd; overflow: hidden; user-select: none;
+        }
+
+        /* ── Generic splitter ───────────────────────────────────────── */
+        .splitter-h {
+            width: 5px; flex-shrink: 0;
+            background: #1a1a1a;
+            border-left: 1px solid #242424; border-right: 1px solid #242424;
+            cursor: ew-resize; transition: background .15s;
+        }
+        .splitter-h:hover, .splitter-h.dragging { background: #4a9eff44; }
+        .splitter-v {
+            height: 5px; flex-shrink: 0;
+            background: #1a1a1a;
+            border-top: 1px solid #242424; border-bottom: 1px solid #242424;
+            cursor: ns-resize; transition: background .15s;
+        }
+        .splitter-v:hover, .splitter-v.dragging { background: #4a9eff44; }
+
+        /* Disable iframe pointer capture while dragging */
+        body.dragging-h { cursor: ew-resize; }
+        body.dragging-h #phoneFrame, body.dragging-v #phoneFrame { pointer-events: none; }
+        body.dragging-v { cursor: ns-resize; }
+
+        /* ── Docs panel ─────────────────────────────────────────────── */
+        #docs-panel {
+            width: 340px; min-width: 180px;
+            display: flex; flex-direction: column;
+            background: #0f0f0f; flex-shrink: 0;
+            overflow: hidden;
+            transition: width .2s ease;
+        }
+        #docs-panel.collapsed { width: 0 !important; }
+        #docs-panel.collapsed + .splitter-h { display: none; }
+
+        #doc-tabs {
+            display: flex; align-items: center; background: #141414;
+            border-bottom: 1px solid #1e1e1e; padding: 0 8px; flex-shrink: 0;
+        }
+        .doc-tab {
+            padding: 8px 11px; background: none; border: none;
+            border-bottom: 2px solid transparent; color: #555;
+            cursor: pointer; font-size: 10px; font-weight: 700;
+            letter-spacing: 1px; text-transform: uppercase;
+            transition: color .15s, border-color .15s; white-space: nowrap;
+        }
+        .doc-tab:hover { color: #888; }
+        .doc-tab.active { color: #4a9eff; border-bottom-color: #4a9eff; }
+        #doc-tab-spacer { flex: 1; }
+        #doc-tab-actions { display: flex; gap: 4px; padding: 4px 0; }
+
+        #doc-content-docs { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+        #doc-content-agent {
+            display: none; flex-direction: column;
+            flex: 1; padding: 14px 12px; gap: 10px; min-height: 0;
+        }
+        #agent-input {
+            flex: 1; min-height: 80px; resize: none;
+            background: #1a1a1a; border: 1px solid #2e2e2e; border-radius: 5px;
+            color: #ccc; font-size: 12.5px;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            padding: 10px 12px; outline: none; line-height: 1.6;
+        }
+        #agent-input:focus { border-color: #4a9eff55; }
+        #agent-actions {
+            display: flex; align-items: center; gap: 7px;
+        }
+        #agent-hint { font-size: 10px; color: #2e2e2e; flex: 1; }
+        .agent-mode {
+            padding: 5px 10px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #666; cursor: pointer; border-radius: 4px; font-size: 10px;
+            font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .agent-mode:hover { background: #252525; color: #aaa; }
+        .agent-mode.append { background: #162030; color: #4a9eff; border-color: #4a9eff55; }
+        #agent-send-btn {
+            padding: 7px 14px; background: #1565c0; color: #90caf9;
+            border: 1px solid #1976d2; border-radius: 5px; cursor: pointer;
+            font-size: 12px; font-weight: 600; display: flex; align-items: center;
+            gap: 5px; transition: background .15s;
+        }
+        #agent-send-btn:hover:not(:disabled) { background: #1976d2; }
+        #agent-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        #agent-status { font-size: 11px; color: #607d8b; min-height: 16px; }
+        #agent-status.error { color: #e57373; }
+
+        .doc-hdr-btn {
+            padding: 3px 8px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #777; cursor: pointer; border-radius: 4px; font-size: 10px;
+            white-space: nowrap; transition: background .15s, color .15s; flex-shrink: 0;
+        }
+        .doc-hdr-btn:hover { background: #252525; color: #4a9eff; border-color: #4a9eff55; }
+        .doc-hdr-btn:disabled { opacity: 0.35; cursor: not-allowed; color: #777; }
+
+        /* File list */
+        #doc-file-list {
+            height: 220px; min-height: 60px; overflow-y: auto; flex-shrink: 0;
+            border-bottom: 1px solid #1e1e1e;
+        }
+        .doc-folder {
+            padding: 5px 12px 3px;
+            font-size: 9px; font-weight: 700; color: #4a9eff;
+            letter-spacing: 1px; text-transform: uppercase;
+            background: #141414; border-bottom: 1px solid #1e1e1e; sticky: top 0;
+        }
+        .doc-file {
+            padding: 6px 12px 6px 18px;
+            font-size: 12px; color: #888; cursor: pointer;
+            border-bottom: 1px solid #181818;
+            transition: background .1s, color .1s;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .doc-file:hover { background: #1a1a1a; color: #ccc; }
+        .doc-file.active { background: #162030; color: #4a9eff; border-left: 2px solid #4a9eff; padding-left: 16px; }
+        #doc-empty { padding: 20px 14px; font-size: 11px; color: #3a3a3a; text-align: center; line-height: 1.9; }
+
+        /* Markdown preview */
+        #doc-preview {
+            flex: 1; overflow-y: auto; padding: 28px 32px;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            font-size: 13.5px; line-height: 1.75; color: #bbb;
+            user-select: text; min-height: 0;
+        }
+        #doc-preview.empty { display: flex; align-items: center; justify-content: center; }
+        #doc-preview .empty-hint { color: #2a2a2a; font-size: 12px; text-align: center; line-height: 2.2; }
+
+        /* Markdown typography */
+        #doc-preview h1,#doc-preview h2,#doc-preview h3,
+        #doc-preview h4,#doc-preview h5,#doc-preview h6 {
+            color: #e2e8f0; font-weight: 600; margin: 1.3em 0 0.45em; line-height: 1.3;
+        }
+        #doc-preview h1 { font-size: 1.65em; border-bottom: 1px solid #252525; padding-bottom: 0.3em; margin-top: 0; }
+        #doc-preview h2 { font-size: 1.3em; border-bottom: 1px solid #1e1e1e; padding-bottom: 0.2em; }
+        #doc-preview h3 { font-size: 1.1em; }
+        #doc-preview h4,#doc-preview h5,#doc-preview h6 { font-size: 1em; color: #94a3b8; }
+        #doc-preview p { margin: 0.65em 0; }
+        #doc-preview a { color: #60a5fa; text-decoration: none; }
+        #doc-preview a:hover { text-decoration: underline; }
+        #doc-preview code {
+            font-family: 'SF Mono','Fira Code',monospace; font-size: 0.85em;
+            background: #1a1a2e; color: #fbbf24;
+            padding: 0.1em 0.4em; border-radius: 3px;
+        }
+        #doc-preview pre {
+            background: #0d1117; border: 1px solid #21262d;
+            border-radius: 6px; padding: 14px 18px; overflow-x: auto; margin: 0.9em 0;
+        }
+        #doc-preview pre code { background: none; color: #c9d1d9; padding: 0; font-size: 0.86em; }
+        #doc-preview blockquote {
+            border-left: 3px solid #30363d; padding: 0.25em 1em; margin: 0.8em 0;
+            color: #6e7681; background: #161b22; border-radius: 0 4px 4px 0;
+        }
+        #doc-preview ul,#doc-preview ol { padding-left: 1.5em; margin: 0.5em 0; }
+        #doc-preview li { margin: 0.2em 0; }
+        #doc-preview table { border-collapse: collapse; width: 100%; margin: 0.9em 0; font-size: 12.5px; }
+        #doc-preview th { background: #161b22; color: #8b949e; font-weight: 600; text-align: left; padding: 7px 12px; border: 1px solid #30363d; }
+        #doc-preview td { padding: 6px 12px; border: 1px solid #21262d; color: #adbac7; }
+        #doc-preview tr:nth-child(even) td { background: #0d1117; }
+        #doc-preview hr { border: none; border-top: 1px solid #252525; margin: 1.2em 0; }
+        #doc-preview img { max-width: 100%; border-radius: 5px; }
+        #doc-preview strong { color: #e2e8f0; }
+        #doc-preview em { color: #94a3b8; }
+
+        /* ── Editor panel ───────────────────────────────────────────── */
+        #editor-panel {
+            width: 480px; min-width: 220px;
+            display: flex; flex-direction: column;
+            background: #141414; flex-shrink: 0;
+        }
+
+        #toolbar {
+            padding: 9px 12px; background: #181818; border-bottom: 1px solid #252525;
+            display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+        }
+        #back-btn, #hamburger-btn {
+            padding: 4px 6px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #666; cursor: pointer; border-radius: 4px; line-height: 1;
+            transition: background .15s, color .15s, border-color .15s; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+        }
+        #back-btn:hover { background: #252525; color: #aaa; border-color: #3e3e3e; }
+        #hamburger-btn:hover { background: #252525; color: #4a9eff; border-color: #4a9eff55; }
+        #hamburger-btn.active { color: #4a9eff; border-color: #4a9eff55; background: #162030; }
+        #toolbar-title { font-size: 11px; font-weight: 700; color: #555; letter-spacing: 1.5px; text-transform: uppercase; flex: 1; }
+        #phone-status { font-size: 11px; color: #9e9e9e; white-space: nowrap; }
+        #reload-btn {
+            padding: 3px 7px; border: 1px solid #2e2e2e; background: #1e1e1e;
+            color: #666; cursor: pointer; border-radius: 4px; font-size: 13px; line-height: 1;
+            transition: background .15s, color .15s; flex-shrink: 0;
+        }
+        #reload-btn:hover { background: #252525; color: #aaa; }
+        #run-btn, #save-btn {
+            padding: 6px 13px; border: none; border-radius: 5px;
+            font-size: 12px; font-weight: 600; cursor: pointer;
+            display: flex; align-items: center; gap: 5px;
+            transition: background .15s, opacity .15s; flex-shrink: 0;
+        }
+        #run-btn { background: #2e7d32; color: #fff; }
+        #run-btn:hover:not(:disabled) { background: #388e3c; }
+        #run-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        #save-btn { background: #1a237e; color: #90caf9; border: 1px solid #283593; }
+        #save-btn:hover { background: #283593; }
+
+        #editor-container { flex: 1; min-height: 60px; }
+
+        #log-area {
+            height: 190px; min-height: 40px; overflow-y: auto;
+            padding: 8px 12px; background: #0d0d0d;
+            font-family: 'SF Mono','Fira Code',monospace; font-size: 11px; flex-shrink: 0;
+        }
+        .log-line { padding: 1px 0; line-height: 1.6; word-break: break-all; }
+        .log-line.info    { color: #444; }
+        .log-line.pass    { color: #4caf50; }
+        .log-line.fail    { color: #e57373; }
+        .log-line.log     { color: #888; }
+        .log-line.con-log  { color: #607d8b; }
+        .log-line.con-warn { color: #e6a817; }
+        .log-line.con-err  { color: #e57373; }
+
+        /* ── Phone panel ────────────────────────────────────────────── */
+        #phone-panel { flex: 1; display: flex; flex-direction: column; min-width: 200px; }
+        #phoneFrame { flex: 1; width: 100%; border: none; background: #fff; }
+    </style>
+</head>
+<body>
+
+<!-- ① Docs panel -->
+<div id="docs-panel">
+    <div id="doc-tabs">
+        <button class="doc-tab active" id="tab-docs" onclick="switchDocTab('docs')">Docs</button>
+        <button class="doc-tab" id="tab-agent" onclick="switchDocTab('agent')">Agent</button>
+        <span id="doc-tab-spacer"></span>
+        <span id="doc-tab-actions">
+            <button id="doc-gh-btn" class="doc-hdr-btn" onclick="fetchGitHubDocs()" title="Reload from GitHub">↺ GitHub</button>
+            <button class="doc-hdr-btn" onclick="openDocsFolder()" title="Open local folder">Local</button>
+        </span>
+    </div>
+    <div id="doc-content-docs">
+        <div id="doc-file-list">
+            <div id="doc-empty">Loading docs…</div>
+        </div>
+        <div id="doc-v-splitter" class="splitter-v"></div>
+        <div id="doc-preview" class="empty">
+            <div class="empty-hint">Select a file to read</div>
+        </div>
+    </div>
+    <div id="doc-content-agent">
+        <textarea id="agent-input" placeholder="Describe the test you want to write…&#10;e.g. add a buddy named John"></textarea>
+        <div id="agent-actions">
+            <button id="agent-mode-btn" class="agent-mode" onclick="toggleAgentMode()" title="Toggle replace / append">Replace</button>
+            <span id="agent-hint">Ctrl+Enter</span>
+            <button id="agent-send-btn" onclick="askAgent()">
+                <svg width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z"/>
+                </svg>
+                Send
+            </button>
+        </div>
+        <div id="agent-status"></div>
+    </div>
+</div>
+
+<!-- splitter: docs ↔ editor -->
+<div id="splitter-docs-editor" class="splitter-h"></div>
+
+<!-- ② Editor panel -->
+<div id="editor-panel">
+    <div id="toolbar">
+        <button id="back-btn" onclick="window.location.href='test-bench.html'" title="Back to Test Bench">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8"/>
+            </svg>
+        </button>
+        <button id="hamburger-btn" onclick="toggleDocs()" title="Toggle docs">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5"/>
+            </svg>
+        </button>
+        <span id="toolbar-title">Playground</span>
+        <span id="phone-status">⏳ Loading phone...</span>
+        <button id="reload-btn" onclick="reloadPhone()" title="Reload phone">↺</button>
+        <button id="run-btn" onclick="runCode()" disabled>
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M11.596 8.697l-6.363 3.692c-.54.313-1.233-.066-1.233-.697V4.308c0-.63.692-1.01 1.233-.696l6.363 3.692a.802.802 0 0 1 0 1.393z"/>
+            </svg>
+            Run
+        </button>
+        <button id="save-btn" onclick="saveCode()">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v7.293l2.646-2.647a.5.5 0 0 1 .708.708l-3.5 3.5a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L7.5 9.293V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1z"/>
+            </svg>
+            Save
+        </button>
+    </div>
+    <div id="editor-container"></div>
+    <div id="splitter-editor-log" class="splitter-v"></div>
+    <div id="log-area"><div class="log-line info">// Run your code to see output here</div></div>
+</div>
+
+<!-- splitter: editor ↔ phone -->
+<div id="splitter-editor-phone" class="splitter-h"></div>
+
+<!-- ③ Phone panel -->
+<div id="phone-panel">
+    <iframe id="phoneFrame" src="./phone.html"></iframe>
+</div>
+
+<!-- Monaco + marked -->
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs/loader.js"></script>
+
+<script>
+    var editor = null;
+    var phoneReady = false;
+    var completionDisposable = null;
+
+    // ── Playground URL helpers ────────────────────────────────────────────
+
+    function playgroundUrl(js) {
+        var encoded = btoa(unescape(encodeURIComponent(js)));
+        return 'playground-container.html?code=' + encoded;
+    }
+
+    function playgroundFileUrl(filename) {
+        return 'playground-container.html?file=' + encodeURIComponent(filename);
+    }
+
+    window.openPlayground = function(js) {
+        window.open(playgroundUrl(js), '_blank');
+    };
+
+    window.openPlaygroundFile = function(filename) {
+        window.open(playgroundFileUrl(filename), '_blank');
+    };
+
+    // ── Monaco ───────────────────────────────────────────────────────────
+
+    var DEFAULT_CODE = '// Siperb Playground\n// Type  phone.  to see all available methods and properties\n\n';
+
+    // Resolve initial editor content: server-injected __pgFile > ?file= > ?code= > default
+    async function resolveInitialCode() {
+        // When served via agent at /playground/:name, server injects window.__pgFile
+        if (window.__pgFile) {
+            var pgName = String(window.__pgFile);
+            var notFound = pgName.endsWith('?notfound');
+            var name = pgName.replace('?notfound', '');
+            if (notFound) return '// File not found: ' + name + '.js\n// Check the playground/ folder\n';
+            try {
+                var resp = await fetch('/playground/' + name + '.js');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                document.title = name + ' — Playground';
+                return await resp.text();
+            } catch(e) {
+                return '// Could not load ' + name + ': ' + e.message + '\n';
+            }
+        }
+
+        var params = new URLSearchParams(location.search);
+        var file = params.get('file');
+        if (file) {
+            try {
+                var slug = file.replace(/\.js$/i, '');
+                var filename = slug + '.js';
+                // Fetch from the same server serving this page
+                var resp = await fetch(location.origin + '/playground/' + filename);
+                if (!resp.ok) throw new Error('HTTP ' + resp.status + ' — is the file in the playground/ folder?');
+                var code = await resp.text();
+                document.title = slug + ' — Playground';
+                return code;
+            } catch(e) {
+                return '// Could not load ' + file + ': ' + e.message + '\n';
+            }
+        }
+        var encoded = params.get('code');
+        if (encoded) {
+            try { return decodeURIComponent(escape(atob(encoded))); } catch(e) {}
+        }
+        return DEFAULT_CODE;
+    }
+
+    require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.48.0/min/vs' } });
+    require(['vs/editor/editor.main'], function() {
+        // Create editor with placeholder first, then swap in resolved code
+        editor = monaco.editor.create(document.getElementById('editor-container'), {
+            value: DEFAULT_CODE,
+            language: 'javascript', theme: 'vs-dark', fontSize: 13,
+            fontFamily: "'SF Mono','Fira Code','Cascadia Code',monospace",
+            minimap: { enabled: false }, scrollBeyondLastLine: false,
+            automaticLayout: true, tabSize: 4, wordWrap: 'on',
+            lineNumbers: 'on', renderLineHighlight: 'line', suggestOnTriggerCharacters: true,
+        });
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, function() {
+            if (!document.getElementById('run-btn').disabled) runCode();
+        });
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, saveCode);
+        resolveInitialCode().then(function(code) {
+            if (code !== DEFAULT_CODE) editor.setValue(code);
+            editor.setScrollPosition({ scrollTop: 0 });
+        });
+    });
+
+    // ── Intellisense ─────────────────────────────────────────────────────
+
+    function registerPhoneCompletions() {
+        if (completionDisposable) { completionDisposable.dispose(); completionDisposable = null; }
+        if (typeof monaco === 'undefined') return;
+        var iw = document.getElementById('phoneFrame').contentWindow;
+        if (!iw || !iw.phone) return;
+        var seen = new Set(), suggestions = [], proto = iw.phone;
+        while (proto !== null && proto !== Object.prototype) {
+            try {
+                Object.getOwnPropertyNames(proto).forEach(function(k) {
+                    if (seen.has(k) || k === 'constructor') return;
+                    seen.add(k);
+                    var val; try { val = iw.phone[k]; } catch(e) { return; }
+                    var isFunc = typeof val === 'function';
+                    suggestions.push({
+                        label: k,
+                        kind: isFunc ? monaco.languages.CompletionItemKind.Method : monaco.languages.CompletionItemKind.Property,
+                        insertText: isFunc ? k + '($0)' : k,
+                        insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+                        detail: isFunc ? 'function' : Array.isArray(val) ? 'Array(' + val.length + ')' : (val === null ? 'null' : typeof val),
+                        sortText: (isFunc ? '0' : '1') + k,
+                    });
+                });
+            } catch(e) {}
+            try { proto = Object.getPrototypeOf(proto); } catch(e) { break; }
+        }
+        suggestions.sort(function(a, b) { return a.sortText.localeCompare(b.sortText); });
+        completionDisposable = monaco.languages.registerCompletionItemProvider('javascript', {
+            triggerCharacters: ['.'],
+            provideCompletionItems: function(model, pos) {
+                var line = model.getValueInRange({ startLineNumber: pos.lineNumber, startColumn: 1, endLineNumber: pos.lineNumber, endColumn: pos.column });
+                if (!line.endsWith('phone.')) return { suggestions: [] };
+                return { suggestions: suggestions };
+            }
+        });
+    }
+
+    // ── Splitters ────────────────────────────────────────────────────────
+
+    function makeSplitter(id, axis, getStart, applyDelta, bodyClass, afterDrop) {
+        var el = document.getElementById(id), dragging = false, startPos, startVal;
+        el.addEventListener('mousedown', function(e) {
+            e.preventDefault(); dragging = true;
+            startPos = axis === 'x' ? e.clientX : e.clientY;
+            startVal = getStart();
+            el.classList.add('dragging');
+            document.body.classList.add(bodyClass);
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            applyDelta((axis === 'x' ? e.clientX : e.clientY) - startPos, startVal);
+        });
+        document.addEventListener('mouseup', function() {
+            if (!dragging) return;
+            dragging = false; el.classList.remove('dragging');
+            document.body.classList.remove(bodyClass);
+            if (afterDrop) afterDrop();
+        });
+    }
+
+    // docs ↔ editor (horizontal)
+    makeSplitter('splitter-docs-editor', 'x',
+        function() { return document.getElementById('docs-panel').getBoundingClientRect().width; },
+        function(d, s) { document.getElementById('docs-panel').style.width = Math.max(180, Math.min(700, s + d)) + 'px'; },
+        'dragging-h',
+        function() { if (editor) editor.layout(); }
+    );
+
+    // editor ↔ phone (horizontal)
+    makeSplitter('splitter-editor-phone', 'x',
+        function() { return document.getElementById('editor-panel').getBoundingClientRect().width; },
+        function(d, s) { document.getElementById('editor-panel').style.width = Math.max(220, Math.min(window.innerWidth - 400, s + d)) + 'px'; },
+        'dragging-h',
+        function() { if (editor) editor.layout(); }
+    );
+
+    // editor ↕ log (vertical inside editor panel)
+    makeSplitter('splitter-editor-log', 'y',
+        function() { return document.getElementById('log-area').getBoundingClientRect().height; },
+        function(d, s) { document.getElementById('log-area').style.height = Math.max(40, Math.min(window.innerHeight - 160, s - d)) + 'px'; },
+        'dragging-v',
+        function() { if (editor) editor.layout(); }
+    );
+
+    // docs file-list ↕ preview (vertical inside docs panel)
+    makeSplitter('doc-v-splitter', 'y',
+        function() { return document.getElementById('doc-file-list').getBoundingClientRect().height; },
+        function(d, s) { document.getElementById('doc-file-list').style.height = Math.max(60, Math.min(600, s + d)) + 'px'; },
+        'dragging-v'
+    );
+
+    // ── Docs toggle ──────────────────────────────────────────────────────
+
+    // ── Agent tab ────────────────────────────────────────────────────────
+
+    var AGENT_URL = 'http://localhost:3131';
+    var agentAppend = false;
+
+    function toggleAgentMode() {
+        agentAppend = !agentAppend;
+        var btn = document.getElementById('agent-mode-btn');
+        btn.textContent = agentAppend ? 'Append' : 'Replace';
+        btn.classList.toggle('append', agentAppend);
+    }
+
+    function switchDocTab(tab) {
+        document.getElementById('tab-docs').classList.toggle('active', tab === 'docs');
+        document.getElementById('tab-agent').classList.toggle('active', tab === 'agent');
+        document.getElementById('doc-content-docs').style.display = tab === 'docs' ? '' : 'none';
+        document.getElementById('doc-content-agent').style.display = tab === 'agent' ? 'flex' : 'none';
+        document.getElementById('doc-tab-actions').style.display = tab === 'docs' ? '' : 'none';
+    }
+
+    async function askAgent() {
+        var query = document.getElementById('agent-input').value.trim();
+        if (!query) return;
+        var btn    = document.getElementById('agent-send-btn');
+        var status = document.getElementById('agent-status');
+        btn.disabled = true;
+        status.className = '';
+        status.textContent = '⏳ Thinking…';
+        try {
+            var resp = await fetch(AGENT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    query: query,
+                    currentCode: editor ? editor.getValue() : '',
+                    currentDoc: activeDocIdx >= 0 && docFiles[activeDocIdx]
+                        ? { name: docFiles[activeDocIdx].name, content: docFiles[activeDocIdx].content }
+                        : null
+                })
+            });
+            var data = await resp.json();
+            if (data.error) throw new Error(data.error);
+            if (agentAppend) {
+                var current = editor.getValue();
+                editor.setValue(current + (current.trim() ? '\n\n' : '') + data.code);
+                var lineCount = editor.getModel().getLineCount();
+                editor.setScrollPosition({ scrollTop: editor.getScrollHeight() });
+                editor.setPosition({ lineNumber: lineCount, column: 1 });
+            } else {
+                editor.setValue(data.code);
+                editor.setScrollPosition({ scrollTop: 0 });
+            }
+            status.textContent = '✓ Code ' + (agentAppend ? 'appended' : 'replaced') + ' in editor';
+            document.getElementById('agent-input').value = '';
+        } catch(e) {
+            status.className = 'error';
+            status.textContent = '✗ ' + e.message;
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    // Ctrl/Cmd+Enter submits
+    document.getElementById('agent-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            askAgent();
+        }
+    });
+
+    // ── Docs toggle ──────────────────────────────────────────────────────
+
+    function toggleDocs() {
+        var panel = document.getElementById('docs-panel');
+        var btn   = document.getElementById('hamburger-btn');
+        var collapsed = panel.classList.toggle('collapsed');
+        btn.classList.toggle('active', !collapsed);
+        setTimeout(function() { if (editor) editor.layout(); }, 220);
+    }
+
+    // ── GitHub docs loading ──────────────────────────────────────────────
+
+    var DOCS_OWNER  = 'Siperb';
+    var DOCS_REPO   = 'Web-Phone';
+    var DOCS_BRANCH = 'main';
+    var DOCS_PATH   = 'docs';
+
+    var docFiles = [];
+    var activeDocIdx = -1;
+
+    async function fetchGitHubDocs() {
+        var btn   = document.getElementById('doc-gh-btn');
+        var listEl = document.getElementById('doc-file-list');
+        btn.disabled = true;
+        btn.textContent = '⏳';
+        listEl.innerHTML = '<div id="doc-empty">Fetching from GitHub…</div>';
+
+        try {
+            var files = [];
+            await fetchGitHubDir(DOCS_OWNER, DOCS_REPO, DOCS_BRANCH, DOCS_PATH, files);
+            if (!files.length) throw new Error('No .md files found in ' + DOCS_PATH + '/');
+            files.sort(function(a, b) { return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name); });
+            docFiles = files;
+            renderDocList();
+            openDoc(0);
+        } catch(e) {
+            listEl.innerHTML = '<div id="doc-empty" style="color:#e57373">Error loading docs:<br>' + escHtml(e.message) + '</div>';
+        }
+
+        btn.disabled = false;
+        btn.textContent = '↺ GitHub';
+    }
+
+    async function fetchGitHubDir(owner, repo, branch, path, out) {
+        var url = 'https://api.github.com/repos/' + owner + '/' + repo
+                + '/contents/' + path.replace(/\/+/g, '/') + '?ref=' + encodeURIComponent(branch);
+        var resp = await fetch(url, { headers: { Accept: 'application/vnd.github.v3+json' } });
+        var data = await resp.json();
+
+        // GitHub returns an object (not array) on errors
+        if (!Array.isArray(data)) {
+            throw new Error(data.message || ('GitHub API returned HTTP ' + resp.status));
+        }
+
+        for (var item of data) {
+            if (item.type === 'file' && item.name.toLowerCase().endsWith('.md')) {
+                // Use raw.githubusercontent.com — avoids a second API call
+                var rawUrl = 'https://raw.githubusercontent.com/' + owner + '/' + repo
+                           + '/' + branch + '/' + item.path;
+                var raw = await fetch(rawUrl);
+                if (!raw.ok) throw new Error('Could not fetch ' + item.name + ' (HTTP ' + raw.status + ')');
+                var parts = item.path.split('/');
+                var folder = parts.length > 1 ? parts[parts.length - 2] : path;
+                out.push({ name: item.name, folder: folder, content: await raw.text() });
+            } else if (item.type === 'dir') {
+                await fetchGitHubDir(owner, repo, branch, item.path, out);
+            }
+        }
+    }
+
+    async function openDocsFolder() {
+        try {
+            var dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+            var files = [];
+            await collectDocFiles(dirHandle, dirHandle.name, files);
+            files.sort(function(a, b) { return (a.folder + '/' + a.name).localeCompare(b.folder + '/' + b.name); });
+            docFiles = files;
+            renderDocList();
+            if (docFiles.length) openDoc(0);
+        } catch(e) {
+            if (e.name !== 'AbortError') {
+                document.getElementById('doc-file-list').innerHTML = '<div id="doc-empty" style="color:#e57373">Error: ' + escHtml(e.message) + '</div>';
+            }
+        }
+    }
+
+    async function collectDocFiles(dirHandle, folderName, out) {
+        for await (var entry of dirHandle.values()) {
+            if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md')) {
+                var file = await entry.getFile();
+                out.push({ name: entry.name, folder: folderName, content: await file.text() });
+            } else if (entry.kind === 'directory') {
+                await collectDocFiles(entry, entry.name, out);
+            }
+        }
+    }
+
+    function renderDocList() {
+        var listEl = document.getElementById('doc-file-list');
+        if (!docFiles.length) { listEl.innerHTML = '<div id="doc-empty">No .md files found.</div>'; return; }
+        var html = '', lastFolder = null;
+        for (var i = 0; i < docFiles.length; i++) {
+            var f = docFiles[i];
+            if (f.folder !== lastFolder) {
+                lastFolder = f.folder;
+                html += '<div class="doc-folder">' + escHtml(f.folder) + '</div>';
+            }
+            html += '<div class="doc-file" id="doc-file-' + i + '" onclick="openDoc(' + i + ')">'
+                  + escHtml(f.name.replace(/\.md$/i, '')) + '</div>';
+        }
+        listEl.innerHTML = html;
+    }
+
+    function openDoc(idx) {
+        if (idx < 0 || idx >= docFiles.length) return;
+        if (activeDocIdx >= 0) {
+            var prev = document.getElementById('doc-file-' + activeDocIdx);
+            if (prev) prev.classList.remove('active');
+        }
+        activeDocIdx = idx;
+        var cur = document.getElementById('doc-file-' + idx);
+        if (cur) { cur.classList.add('active'); cur.scrollIntoView({ block: 'nearest' }); }
+        var preview = document.getElementById('doc-preview');
+        preview.classList.remove('empty');
+        preview.innerHTML = marked.parse(docFiles[idx].content);
+        preview.scrollTop = 0;
+        // Intercept all link clicks: anchor links scroll within preview, external links open in new tab
+        preview.querySelectorAll('a').forEach(function(a) {
+            a.addEventListener('click', function(e) {
+                e.preventDefault();
+                var href = a.getAttribute('href') || '';
+                if (href.startsWith('#')) {
+                    var target = preview.querySelector(href);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else if (href) {
+                    window.open(href, '_blank');
+                }
+            });
+        });
+    }
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // ── Phone bootstrap ──────────────────────────────────────────────────
+
+    async function bootstrapPhone() {
+        setPhoneStatus('⏳ Loading phone...');
+        var iframe = document.getElementById('phoneFrame');
+        if (typeof SiperbWorkBenchBuilder === 'undefined') {
+            setPhoneStatus('⚠️ SiperbWorkBenchBuilder not loaded', 'error'); return;
+        }
+        var cfg = window.TestConfig;
+        if (!cfg) {
+            try {
+                var resp = await fetch('./test.config.json');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var raw = await resp.json();
+                var env = raw.environment || 'testing';
+                cfg = { SESSION_ID: raw.SESSION_ID, USER_ID: raw.USER_ID, DEVICE_ID: raw.DEVICE_ID,
+                    phoneVersionTreeUrl: raw['phone-version-tree-' + env],
+                    UseLocalFiles: raw.UseLocalFiles || [], Provisioning: null };
+            } catch(e) { setPhoneStatus('⚠️ ' + e.message, 'error'); return; }
+        }
+        if (!cfg.Provisioning || !Object.keys(cfg.Provisioning).length) {
+            setPhoneStatus('⏳ Fetching provisioning...');
+            try {
+                var pr = await fetch('https://api.siperb.com/Users/' + cfg.USER_ID + '/Devices/' + cfg.DEVICE_ID + '/?password=yes&settings_json=yes',
+                    { headers: { 'Content-Type': 'application/json', 'X-Api-Key': cfg.SESSION_ID } });
+                cfg.Provisioning = pr.ok ? ((await pr.json()).Settings_json || {}) : {};
+            } catch(e) { cfg.Provisioning = {}; }
+        }
+        setPhoneStatus('⏳ Loading phone...');
+        function tout(p, ms, lbl) {
+            return Promise.race([p, new Promise(function(_,r){ setTimeout(function(){ r(new Error(lbl + ' timed out')); }, ms); })]);
+        }
+        try {
+            await tout(SiperbWorkBenchBuilder.LoadBrowserPhone(iframe, { treeUrl: cfg.phoneVersionTreeUrl, UseLocalFiles: cfg.UseLocalFiles }), 30000, 'LoadBrowserPhone');
+            await tout(SiperbWorkBenchBuilder.ProvisionPhone({ Provisioning: cfg.Provisioning, PhoneFrame: iframe, ProfileUserId: cfg.DEVICE_ID, SessionId: cfg.SESSION_ID, UserId: cfg.USER_ID }), 30000, 'ProvisionPhone');
+            phoneReady = true; window.__phoneReady = true;
+            setPhoneStatus('✓ Phone ready', 'ready');
+            document.getElementById('run-btn').disabled = false;
+            setTimeout(registerPhoneCompletions, 200);
+        } catch(e) { setPhoneStatus('✗ ' + (e.message || e), 'error'); window.__phoneError = String(e); }
+    }
+
+    function setPhoneStatus(msg, cls) {
+        var el = document.getElementById('phone-status');
+        el.textContent = msg;
+        el.style.color = cls === 'ready' ? '#4caf50' : cls === 'error' ? '#e57373' : '#9e9e9e';
+    }
+    function reloadPhone() {
+        phoneReady = false; window.__phoneReady = false; window.__phoneError = undefined;
+        document.getElementById('run-btn').disabled = true;
+        bootstrapPhone();
+    }
+
+    // ── Log ──────────────────────────────────────────────────────────────
+
+    function clearLogs() { document.getElementById('log-area').innerHTML = ''; }
+    function appendLog(msg, type) {
+        var log = document.getElementById('log-area');
+        var line = document.createElement('div');
+        line.className = 'log-line ' + (type || 'log');
+        line.textContent = msg;
+        log.appendChild(line);
+        log.scrollTop = log.scrollHeight;
+    }
+
+    // ── Run ──────────────────────────────────────────────────────────────
+
+    async function runCode() {
+        if (!phoneReady) { appendLog('Phone not ready.', 'fail'); return; }
+        if (!editor) return;
+        var iframe = document.getElementById('phoneFrame'), iw = iframe.contentWindow;
+        clearLogs();
+        var origLog = window.TestApp.Log.bind(window.TestApp);
+        window.TestApp.Log = function(msg) { origLog(msg); appendLog('    ' + String(msg), 'log'); };
+        var con = iw.console;
+        var _L = con.log.bind(con), _W = con.warn.bind(con), _E = con.error.bind(con);
+        function fmt(a) { return Array.from(a).map(function(x){ return typeof x==='object'?JSON.stringify(x):String(x); }).join(' '); }
+        con.log   = function() { _L.apply(con,arguments); appendLog('  › '+fmt(arguments),'con-log');  };
+        con.warn  = function() { _W.apply(con,arguments); appendLog('  ⚠ '+fmt(arguments),'con-warn'); };
+        con.error = function() { _E.apply(con,arguments); appendLog('  ✕ '+fmt(arguments),'con-err');  };
+        window.TestApp.RunBeforeEach();
+        iw.TestApp = window.TestApp; iw.__testResult = null; window.__testResult = null;
+        try {
+            await (new iw.Function('phone','TestApp','return (async()=>{ '+editor.getValue()+' })()')(iw.phone, iw.TestApp));
+            var r = iw.__testResult || window.__testResult || { status:'pass', message:'ok' };
+            appendLog((r.status==='pass'?'✓ ':'✗ ')+r.message, r.status);
+        } catch(e) { appendLog('✗ '+e.message,'fail'); }
+        con.log=_L; con.warn=_W; con.error=_E; window.TestApp.Log=origLog;
+    }
+
+    // ── Save ─────────────────────────────────────────────────────────────
+
+    async function saveCode() {
+        if (!editor) return;
+        try {
+            var h = await window.showSaveFilePicker({ suggestedName:'playground-test.js', types:[{ description:'JavaScript File', accept:{'text/javascript':['.js']} }] });
+            var w = await h.createWritable(); await w.write(editor.getValue()); await w.close();
+            appendLog('✓ Saved: '+h.name,'pass');
+        } catch(e) { if(e.name!=='AbortError') appendLog('✗ Save error: '+e.message,'fail'); }
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────
+    window.addEventListener('load', function() {
+        bootstrapPhone();
+        fetchGitHubDocs();
+        // Hamburger starts active (docs open by default)
+        document.getElementById('hamburger-btn').classList.add('active');
+    });
+</script>
+</body>
+</html>

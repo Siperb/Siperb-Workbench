@@ -1,7 +1,7 @@
 {
-    "timestamp": "2026-03-11T14:55:04.253Z",
-    "passed": 3,
-    "failed": 0,
+    "timestamp": "2026-03-12T07:44:07.936Z",
+    "passed": 2,
+    "failed": 1,
     "total": 3,
     "results": [
         {
@@ -16,8 +16,8 @@
         },
         {
             "name": "simple-moh",
-            "status": "pass",
-            "message": "Simple MOH OK: Outbound call 0 seconds Cancelled outbound Cancelled Us 710"
+            "status": "fail",
+            "message": "MyBuddies.length is 2, expected 1"
         }
     ]
 }

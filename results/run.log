@@ -1,0 +1,66 @@
+Run started: 2026-03-12T07:44:03.309Z
+Running 9 test(s)...
+Server: http://127.0.0.1:59899
+Waiting for phone to be ready...
+Phone ready.
+
+════════════════════════════════════════
+  buddy-tests  (4 tests)
+════════════════════════════════════════
+    [TestApp] Deleting all buddies
+    [TestApp] Adding buddy
+  ✓ buddy-add  Buddy added
+    [TestApp] Deleting all buddies
+  ✓ buddy-delete  Buddy deleted
+    [TestApp] Deleting all buddies
+    [TestApp] Buddies cleared successfully
+    [TestApp] Buddies loaded successfully
+    [TestApp] Buddies updated successfully
+  ✓ buddy-update  Buddies updated successfully with display name: TestBuddy UPDATED
+    [TestApp] Deleting all buddies
+    [TestApp] Buddies cleared successfully
+    [TestApp] Buddies loaded successfully
+  ✓ load-buddies  Buddies loaded successfully with 1 buddies
+
+════════════════════════════════════════
+  calling-tests  (3 tests)
+════════════════════════════════════════
+    [TestApp] Buddy *65 created
+  ✓ 1  ok
+    [TestApp] SipProvider.Status is Registered
+    [TestApp] SessionId: 34be5d67-e1f1-460b-bfc6-3d2db6e6ef70
+    [TestApp] Waiting for call to be accepted
+    [TestApp] OnSessionStateChange: OnTrying (SessionId=34be5d67-e1f1-460b-bfc6-3d2db6e6ef70)
+    [TestApp] OnSessionStateChange: OnProgress (SessionId=34be5d67-e1f1-460b-bfc6-3d2db6e6ef70)
+    [TestApp] Call in progress, calling Cancel
+    [TestApp] OnSessionStateChange: Cancel (SessionId=34be5d67-e1f1-460b-bfc6-3d2db6e6ef70)
+    [TestApp] Call ended: Cancel
+    [TestApp] Call ended, checking for CDR
+    [TestApp] CDR found: Outbound call 0 seconds Cancelled
+    [TestApp] Cancel event found: OnCancel
+  ✓ early-reject  Early Cancel OK: Outbound call 0 seconds Cancelled outbound Cancelled Us
+    [TestApp] SipProvider.Status is Registered
+  ✗ simple-moh  MyBuddies.length is 2, expected 1
+
+════════════════════════════════════════
+  message-tests  (1 test)
+════════════════════════════════════════
+    [TestApp] Starting Message add test
+  ✓ message-add  Message added
+
+════════════════════════════════════════
+  settings-test  (1 test)
+════════════════════════════════════════
+    [TestApp] Starting Settings Test
+    [TestApp] Settings
+  ✗ abc  HelloWorld is undefined, expected Hello World
+4/4 passed  → buddy-tests
+2/3 passed  → calling-tests
+1/1 passed  → message-tests
+0/1 passed  → settings-test
+
+════════════════════════════════════════
+7/9 passed  (2 failed)
+════════════════════════════════════════
+
+Log saved to: run.log

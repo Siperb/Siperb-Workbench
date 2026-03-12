@@ -61,8 +61,6 @@ async function onSessionStateChange(event) {
     
    }
 }
-
-
 window.addEventListener("OnSessionStateChange", onSessionStateChange);
 
 sessionId = await phone.Dial(buddy);
